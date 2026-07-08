@@ -49,6 +49,7 @@ function backToStart() {
         </button>
       </div>
       <button class="link" @click="backToStart">返回首页</button>
+      <button class="link" @click="store.setView('gallery')">查看结局图鉴</button>
     </section>
   </div>
 </template>

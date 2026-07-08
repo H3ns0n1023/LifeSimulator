@@ -171,19 +171,29 @@ export const schoolEvents: GameEvent[] = [
     id: 'school_bullying',
     stage: 'school', ageRange: [10, 13], once: true,
     trigger: { baseWeight: 4 },
-    text: '厕所角落里，几个高年级男生围住了你。「带钱了吗？明天记得多带点。」领头的拍了拍你的脸。',
+    text: (s) => s.flags.has('milestone_left_behind')
+      ? '他们专挑你这种"没爹妈撑腰"的。厕所角落里，几个高年级男生围住你：「带钱了吗？反正也没人管你。」'
+      : '厕所角落里，几个高年级男生围住了你。「带钱了吗？明天记得多带点。」领头的拍了拍你的脸。',
     choices: [
       {
         label: '忍气吞声，把钱交出来',
         outcomes: [{
           weight: 100, condition: { all: [] },
           apply: (s) => { addDisease(s, 'depression'); s.flags.add('choice_bully_yield'); },
-          result: '他们拿了钱走开。你躲在隔间里，拳头攥得发白。',
+          result: (s) => s.flags.has('milestone_left_behind')
+            ? '他们拿了钱走开。你躲在隔间里，想起远方的妈妈——可她在打工的城市，连电话都打不通。'
+            : '他们拿了钱走开。你躲在隔间里，拳头攥得发白。',
         }],
       },
       {
         label: '奋起反抗，打回去',
         outcomes: [
+          // 勇敢 flag（choice_brave_kid）+ 健康 → 高成功率（weight 80）
+          {
+            weight: 80, condition: { all: [{ flag: 'choice_brave_kid' }, { healthIn: ['healthy'] }] },
+            apply: (s) => { addScore(s, 'fame', 12); addScore(s, 'freedom', 5); s.flags.add('choice_bully_fight_back'); },
+            result: '你想起小时候敢一个人开灯面对黑夜，这次也没怕。你一拳打肿了领头的眼睛，他们再没敢找你。',
+          },
           {
             weight: 50, condition: { healthIn: ['healthy'] },
             apply: (s) => { addScore(s, 'fame', 8); s.flags.add('choice_bully_fight_back'); },
@@ -197,11 +207,14 @@ export const schoolEvents: GameEvent[] = [
         ],
       },
       {
-        label: '告诉老师/家长',
+        // 留守儿童"告诉家长"心酸版；非留守正常版
+        label: (s) => s.flags.has('milestone_left_behind') ? '告诉爷爷奶奶' : '告诉老师/家长',
         outcomes: [{
           weight: 100, condition: { all: [] },
           apply: (s) => { addScore(s, 'family', 5); s.flags.add('choice_bully_tell'); },
-          result: '成年人介入了。霸凌者被处分，但你也成了他们眼里的「告密者」。',
+          result: (s) => s.flags.has('milestone_left_behind')
+            ? '爷爷奶奶拄着拐杖去找了校长。霸凌者被处分了，但你想：要是爸妈在，该多好。'
+            : '成年人介入了。霸凌者被处分，但你也成了他们眼里的「告密者」。',
         }],
       },
     ],

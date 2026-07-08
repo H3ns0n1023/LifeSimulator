@@ -17,8 +17,12 @@ function continueGame() {
     <div class="actions">
       <button class="primary" @click="startNew">开始新人生</button>
       <button v-if="store.checkHasSave()" @click="continueGame">继续上局</button>
+      <button @click="store.setView('gallery')">结局图鉴</button>
       <button @click="store.setView('settings')">设置</button>
     </div>
+    <p v-if="store.allEndings.length > 0" class="progress-hint">
+      已解锁 {{ store.unlockedEndings.length }} / {{ store.allEndings.length }} 个结局
+    </p>
   </div>
 </template>
 
@@ -28,4 +32,5 @@ function continueGame() {
 .actions { display: flex; flex-direction: column; gap: 0.75rem; max-width: 280px; margin: 0 auto; }
 button { padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer; }
 button.primary { background: #2c3e50; color: white; border: none; }
+.progress-hint { margin-top: 2rem; color: #999; font-size: 0.85rem; }
 </style>

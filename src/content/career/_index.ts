@@ -396,18 +396,31 @@ export const careerEvents: GameEvent[] = [
   },
 
   // 11. 父母养老 — 38-50 岁
+  //    动态文案：根据是否已回老家 / 就业状态，调整"请假回家"的措辞，避免矛盾
   {
     id: 'career_parents_aging',
     stage: 'career', ageRange: [38, 50], once: true,
     trigger: { baseWeight: 5 },
-    text: '电话那头，老爸的声音有点沙哑：「没事没事，就是……你妈住院了，小毛病。」',
+    text: (s) => s.flags.has('choice_back_hometown')
+      ? '老妈突然晕倒住了院。好在你就在身边，几步路就到了医院。老爸在走廊叹气：「要是你不在家……」'
+      : '电话那头，老爸的声音有点沙哑：「没事没事，就是……你妈住院了，小毛病。」',
     choices: [
       {
-        label: '立刻请假回家陪护',
+        // 动态 label：已回老家→"日夜陪护"；在职→"请假回家"；失业/创业→"放下手头事赶回"
+        label: (s) => s.flags.has('choice_back_hometown')
+          ? '日夜守在病床前'
+          : (s.employment === 'employed' ? '立刻请假回家陪护' : '放下手头的事赶回老家'),
         outcomes: [{
           weight: 100, condition: { all: [] },
-          apply: (s) => { addScore(s, 'family', 12); adjustSalary(s, -3000); s.flags.add('choice_filial_child'); },
-          result: '你在病床前守了七天七夜。妈妈出院那天，握着你的手不松开。',
+          apply: (s) => {
+            addScore(s, 'family', 12);
+            // 已回老家不扣"路费/误工"；异地才扣
+            if (!s.flags.has('choice_back_hometown')) adjustSalary(s, -3000);
+            s.flags.add('choice_filial_child');
+          },
+          result: (s) => s.flags.has('choice_back_hometown')
+            ? '你守了妈妈七天七夜。邻床病友都夸：「这孩子真孝顺，一直守着。」你心想：当年回老家，值了。'
+            : '你在病床前守了七天七夜。妈妈出院那天，握着你的手不松开。',
         }],
       },
       {
@@ -419,7 +432,9 @@ export const careerEvents: GameEvent[] = [
         }],
       },
       {
+        // 动态 label：已回老家不会显示"太远了"；用 visibleWhen 隐藏
         label: '太远了，过段时间再说',
+        visibleWhen: { notFlag: 'choice_back_hometown' },
         outcomes: [{
           weight: 100, condition: { all: [] },
           apply: (s) => { addScore(s, 'family', -10); addDisease(s, 'depression'); s.flags.add('choice_absent_child'); },
@@ -631,7 +646,7 @@ export const careerEvents: GameEvent[] = [
         outcomes: [{
           weight: 100, condition: { flag: 'skill_office_politics' },
           apply: (s) => { adjustSalary(s, 5000); addScore(s, 'career', 15); addScore(s, 'family', -8); addDisease(s, 'insomnia'); s.flags.add('achievement_big_launch'); },
-          result: '项目如期上线，你成了部门红人。但团队走了三个人，老婆跟你冷战一周。',
+          result: (s) => `项目如期上线，你成了部门红人。但团队走了三个人，${s.marriage === 'married' ? '老伴跟你冷战一周' : '一个人回家的你，连个说话的人都没有'}。`,
         },{
           weight: 100, condition: { notFlag: 'skill_office_politics' },
           apply: (s) => { addScore(s, 'career', 8); addDisease(s, 'insomnia'); worsenHealth(s); },
@@ -753,7 +768,9 @@ export const careerEvents: GameEvent[] = [
       baseWeight: 6,
       requires: [{ employment: 'employed' }],
     },
-    text: '周一早晨，你盯着天花板不想起床。不是累，是麻木。打开电脑想吐，看到工作群消息想逃。',
+    text: (s) => s.flags.has('choice_independent_early')
+      ? '周一早晨，你盯着天花板不想起床。你从小就知道"懂事"——爸妈不在身边，自己扛。可这次，你扛不动了。'
+      : '周一早晨，你盯着天花板不想起床。不是累，是麻木。打开电脑想吐，看到工作群消息想逃。',
     choices: [
       {
         label: '请长假，去山里待一个月',
@@ -768,7 +785,9 @@ export const careerEvents: GameEvent[] = [
         outcomes: [{
           weight: 100, condition: { all: [] },
           apply: (s) => { s.diseases.delete('depression'); improveHealth(s); adjustSalary(s, -2000); s.flags.add('choice_therapy'); },
-          result: '医生说你这是职业倦怠叠加轻度抑郁。半年咨询后，你学会了拒绝。',
+          result: (s) => s.flags.has('choice_independent_early')
+            ? '医生说：「你不是不会扛，是扛太久了。」你第一次在陌生人面前哭了出来。'
+            : '医生说你这是职业倦怠叠加轻度抑郁。半年咨询后，你学会了拒绝。',
         }],
       },
       {
@@ -776,7 +795,9 @@ export const careerEvents: GameEvent[] = [
         outcomes: [{
           weight: 100, condition: { all: [] },
           apply: (s) => { addDisease(s, 'depression'); worsenHealth(s); addScore(s, 'career', 3); },
-          result: '你灌着咖啡继续卷。直到某天在工位晕倒被救护车拉走。',
+          result: (s) => s.flags.has('choice_independent_early')
+            ? '「我从小就这么过来的。」你灌着咖啡继续卷。直到某天在工位晕倒——你终于承认，自己不是铁打的。'
+            : '你灌着咖啡继续卷。直到某天在工位晕倒被救护车拉走。',
         }],
       },
     ],
@@ -842,6 +863,11 @@ export const careerEvents: GameEvent[] = [
       {
         label: '收集证据，越级举报',
         outcomes: [{
+          // 勇敢 flag（童年敢开灯）+ office_politics → 高成功率高权重
+          weight: 150, condition: { all: [{ flag: 'choice_brave_kid' }, { flag: 'skill_office_politics' }] },
+          apply: (s) => { addScore(s, 'career', 12); addScore(s, 'fame', 10); s.flags.add('choice_fight_pua'); },
+          result: (s) => `你录了音、留了聊天记录，毫不犹豫地敲开了总监的门。HR 调查后调走了他。${s.flags.has('choice_brave_kid') ? '你想起五岁那年敢一个人开灯面对黑夜——有些勇敢，是一辈子的事。' : '你成了组里"敢说真话"的人。'}`,
+        },{
           weight: 100, condition: { flag: 'skill_office_politics' },
           apply: (s) => { addScore(s, 'career', 8); addScore(s, 'fame', 5); s.flags.add('choice_fight_pua'); },
           result: '你录了音、留了聊天记录。HR 调查后调走了他。你成了组里"敢说真话"的人。',

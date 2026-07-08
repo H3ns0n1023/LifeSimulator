@@ -100,17 +100,19 @@ export interface GameState {
   };
 }
 
-// ============ 事件 / 选项 / 结果（结构不变）============
+// ============ 事件 / 选项 / 结果 ============
+// text/result/label 都支持函数形式，可根据玩家状态动态生成文案，
+// 从而消灭"回老家还请假"这类事件与状态不符的逻辑 bug。
 export interface Outcome {
   weight: number;
   condition: Condition;
   apply: (s: GameState) => void;
-  result: string;
+  result: string | ((s: GameState) => string);
   nextEvent?: string;
 }
 
 export interface Choice {
-  label: string;
+  label: string | ((s: GameState) => string);
   hint?: string;
   visibleWhen?: Condition;
   outcomes: Outcome[];
@@ -126,7 +128,7 @@ export interface GameEvent {
     requires?: Condition[];
     excludes?: string[];
   };
-  text: string;
+  text: string | ((s: GameState) => string);
   choices: Choice[];
 }
 

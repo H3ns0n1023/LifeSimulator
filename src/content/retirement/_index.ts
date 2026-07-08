@@ -285,11 +285,20 @@ export const retirementEvents: GameEvent[] = [
         }],
       },
       {
-        label: '留给陪伴自己的人/宠物基金会',
+        label: (s) => s.flags.has('milestone_has_pet') ? '捐给流浪动物救助站' : '留给陪伴自己的人',
         outcomes: [{
           weight: 100, condition: { all: [] },
-          apply: (s) => { addScore(s, 'family', 8); s.flags.add('choice_will_personal'); },
-          result: '你不按常理出牌，把东西留给了真正温暖过你的人（或那只猫）。',
+          apply: (s) => {
+            addScore(s, 'family', 8);
+            // 善良 flag（童年救过猫）额外加分，呼应"善良的回响"
+            if (s.flags.has('choice_kind_heart')) addScore(s, 'spirit', 10);
+            s.flags.add('choice_will_personal');
+          },
+          result: (s) => s.flags.has('milestone_has_pet')
+            ? (s.flags.has('choice_kind_heart')
+              ? '你想起童年那只橘猫，和它蹭你手心的温度。你把一切捐给了流浪动物救助站——这是五岁那年那个孩子的回响。'
+              : '你把积蓄捐给了流浪动物救助站。律师愣了一下，随即微笑着记下。')
+            : '你不按常理出牌，把东西留给了真正温暖过你的人。',
         }],
       },
     ],

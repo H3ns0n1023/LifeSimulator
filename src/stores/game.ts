@@ -11,7 +11,7 @@ import { mulberry32, randomInt } from '../engine/rng';
 import { ALL_EVENTS, ALL_ENDINGS, findEvent } from '../content/_registry';
 import type { Outcome, GameEvent } from '../engine/types';
 
-type View = 'start' | 'game' | 'ending' | 'settings';
+type View = 'start' | 'game' | 'ending' | 'settings' | 'gallery';
 
 export const useGameStore = defineStore('game', () => {
   const state = ref<GameState | null>(null);
@@ -55,6 +55,8 @@ export const useGameStore = defineStore('game', () => {
     currentEventIds.value = [];
     eventQueueIndex.value = 0;
     currentEndingId.value = null;
+    currentEvent.value = null;
+    lastOutcome.value = null;  // ← 清掉上一世的结局/事件描述，避免开局串戏
   }
 
   function persist() {
@@ -75,6 +77,12 @@ export const useGameStore = defineStore('game', () => {
     unlockedEndings.value = data.unlockedEndings;
     totalPlaythroughs.value = data.totalPlaythroughs;
     view.value = 'game';
+    // 清运行时显示状态，避免继续上局时看到上次结局描述
+    currentEvent.value = null;
+    lastOutcome.value = null;
+    currentEventIds.value = [];
+    eventQueueIndex.value = 0;
+    currentEndingId.value = null;
     return true;
   }
 
@@ -158,6 +166,8 @@ export const useGameStore = defineStore('game', () => {
       finalizeEnding();
       return;
     }
+    // 清掉去年的事件结果描述，避免新一年开头残留旧文字
+    lastOutcome.value = null;
     startYear();
     persist();
   }
@@ -174,6 +184,7 @@ export const useGameStore = defineStore('game', () => {
   return {
     state, view, currentEventIds, eventQueueIndex, currentEndingId,
     unlockedEndings, totalPlaythroughs, lastLog, currentEvent, lastOutcome,
+    allEndings: ALL_ENDINGS,
     hasOngoingGame, newGame, persist, loadFromSave, checkHasSave, resetAll, setView,
     startYear, selectChoice, advanceYear,
   };
