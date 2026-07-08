@@ -40,9 +40,12 @@ function nextYear() {
     </div>
     <footer class="bottombar">
       <HistoryPanel />
-      <button class="next-year" @click="nextYear" :disabled="!!store.currentEvent">
-        下一年 →
-      </button>
+      <div class="actions">
+        <button class="shop-btn" @click="store.setView('shop')">🛒 商店</button>
+        <button class="next-year" @click="nextYear" :disabled="!!store.currentEvent">
+          下一年 →
+        </button>
+      </div>
     </footer>
   </div>
 </template>
@@ -53,7 +56,10 @@ function nextYear() {
   background: #2c3e50; color: white; }
 .main { display: flex; flex: 1; overflow: hidden; }
 .content { flex: 1; padding: 1rem; overflow-y: auto; }
-.bottombar { padding: 0.75rem; border-top: 1px solid #ddd; text-align: right; }
+.bottombar { padding: 0.75rem; border-top: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+.actions { display: flex; gap: 0.5rem; }
+.shop-btn { padding: 0.5rem 1.2rem; background: #8e44ad; color: white; border: none; cursor: pointer; }
+.shop-btn:hover { background: #9b59b6; }
 .next-year { padding: 0.5rem 2rem; background: #2c3e50; color: white; border: none; cursor: pointer; }
 .next-year:disabled { background: #aaa; cursor: not-allowed; }
 </style>

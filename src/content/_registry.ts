@@ -33,7 +33,7 @@ const careerMasterEnding: Ending = {
   priority: 50,
   condition: (s) => s.scores.career >= 70 && topTrack(s) === 'career',
   title: '事业有成',
-  desc: (s) => `你以月薪 ${s.salary} 元、事业分 ${s.scores.career} 走到人生终点。外人看来，你是世俗意义上的赢家。`,
+  desc: (s) => `你以月薪 ${s.salary} 元、存款 ${s.savings} 元、事业分 ${s.scores.career} 走到人生终点。外人看来，你是世俗意义上的赢家。`,
   rating: (s) => (s.scores.career >= 85 ? 'S' : 'A'),
 };
 

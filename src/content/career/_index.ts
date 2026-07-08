@@ -1,7 +1,7 @@
 // src/content/career/_index.ts
 import type { GameEvent } from '../../engine/types';
 import {
-  addScore, adjustSalary, transitionEmployment, transitionMarriage,
+  addScore, adjustSalary, adjustSavings, transitionEmployment, transitionMarriage,
   addDisease, worsenHealth, improveHealth,
 } from '../../engine/status';
 
@@ -86,12 +86,12 @@ export const careerEvents: GameEvent[] = [
         outcomes: [
           {
             weight: 100, condition: { salaryGte: 8000 },
-            apply: (s) => { transitionMarriage(s, 'married'); addScore(s, 'family', 15); adjustSalary(s, -3000); s.flags.add('milestone_family'); s.flags.add('milestone_married'); },
+            apply: (s) => { transitionMarriage(s, 'married'); addScore(s, 'family', 15); adjustSavings(s, -3000); s.flags.add('milestone_family'); s.flags.add('milestone_married'); },
             result: '你成家了。',
           },
           {
             weight: 100, condition: { salaryLt: 8000 },
-            apply: (s) => { transitionMarriage(s, 'married'); addScore(s, 'family', 5); adjustSalary(s, -2000); s.flags.add('milestone_married'); },
+            apply: (s) => { transitionMarriage(s, 'married'); addScore(s, 'family', 5); adjustSavings(s, -2000); s.flags.add('milestone_married'); },
             result: '彩礼和房贷让你喘不过气，婚礼只好从简。',
           },
         ],
@@ -129,13 +129,13 @@ export const careerEvents: GameEvent[] = [
         label: '咬牙买房，背三十年房贷',
         outcomes: [
           {
-            weight: 100, condition: { salaryGte: 12000 },
-            apply: (s) => { adjustSalary(s, -5000); addScore(s, 'family', 8); s.flags.add('milestone_house_owner'); s.flags.add('choice_buy_house'); },
+            weight: 100, condition: { savingsGte: 12000 },
+            apply: (s) => { adjustSavings(s, -5000); addScore(s, 'family', 8); s.flags.add('milestone_house_owner'); s.flags.add('choice_buy_house'); },
             result: '你成了有房一族。每月还款心痛，但推开家门那一刻值了。',
           },
           {
-            weight: 100, condition: { salaryLt: 12000 },
-            apply: (s) => { adjustSalary(s, -4000); worsenHealth(s); s.flags.add('choice_buy_house'); },
+            weight: 100, condition: { savingsLt: 12000 },
+            apply: (s) => { adjustSavings(s, -4000); worsenHealth(s); s.flags.add('choice_buy_house'); },
             result: '你硬着头皮贷了三十年，每月工资大半还了房贷。',
           },
         ],
@@ -193,7 +193,7 @@ export const careerEvents: GameEvent[] = [
         label: '去医院复查，认真对待',
         outcomes: [{
           weight: 100, condition: { all: [] },
-          apply: (s) => { adjustSalary(s, -2000); addScore(s, 'freedom', 3); s.flags.add('choice_health_serious'); },
+          apply: (s) => { adjustSavings(s, -2000); addScore(s, 'freedom', 3); s.flags.add('choice_health_serious'); },
           result: '医生让你戒酒戒熬夜，你乖乖照做。',
         }],
       },
@@ -228,17 +228,17 @@ export const careerEvents: GameEvent[] = [
         outcomes: [
           {
             weight: 30, condition: { flag: 'foreshadow_indie_dev' },
-            apply: (s) => { adjustSalary(s, 5000); addScore(s, 'fame', 10); s.flags.add('achievement_side_hustle_win'); },
+            apply: (s) => { adjustSavings(s, 5000); addScore(s, 'fame', 10); s.flags.add('achievement_side_hustle_win'); },
             result: '你以前想做的游戏居然火了，副业收入居然超过了主业。',
           },
           {
             weight: 50, condition: { all: [] },
-            apply: (s) => { adjustSalary(s, -2000); addScore(s, 'freedom', -3); },
+            apply: (s) => { adjustSavings(s, -2000); addScore(s, 'freedom', -3); },
             result: '折腾半年，没亏也没赚。算是交了学费。',
           },
           {
             weight: 20, condition: { all: [] },
-            apply: (s) => { adjustSalary(s, -8000); addScore(s, 'career', -5); s.flags.add('choice_side_hustle_burned'); },
+            apply: (s) => { adjustSavings(s, -8000); addScore(s, 'career', -5); s.flags.add('choice_side_hustle_burned'); },
             result: '你被「创业导师」割了韭菜，积蓄打水漂。',
           },
         ],
@@ -295,7 +295,7 @@ export const careerEvents: GameEvent[] = [
             transitionMarriage(s, 'divorced');
             addScore(s, 'freedom', 5);
             addScore(s, 'family', -10);
-            adjustSalary(s, -5000);
+            adjustSavings(s, -5000);
             s.flags.add('milestone_divorced');
           },
           result: '一纸协议，半生缘分。搬家那天下着雨。',
@@ -333,7 +333,7 @@ export const careerEvents: GameEvent[] = [
         label: '转行，开启第二曲线',
         outcomes: [{
           weight: 100, condition: { flag: 'foreshadow_indie_dev' },
-          apply: (s) => { addScore(s, 'career', 8); adjustSalary(s, -3000); s.flags.add('choice_career_pivot'); },
+          apply: (s) => { addScore(s, 'career', 8); adjustSavings(s, -3000); s.flags.add('choice_career_pivot'); },
           result: '你去学了新东西。35 岁重新做新人，居然有点兴奋。',
         }],
       },
@@ -381,7 +381,7 @@ export const careerEvents: GameEvent[] = [
             weight: 15, condition: { flag: 'foreshadow_overseas_dream' },
             apply: (s) => {
               s.flags.add('twist_deported');
-              adjustSalary(s, -10000);
+              adjustSavings(s, -10000);
               addScore(s, 'career', -10);
             },
             nextEvent: 'ending_deported',
@@ -420,7 +420,7 @@ export const careerEvents: GameEvent[] = [
           apply: (s) => {
             addScore(s, 'family', 12);
             // 已回老家不扣"路费/误工"；异地才扣
-            if (!s.flags.has('choice_back_hometown')) adjustSalary(s, -3000);
+            if (!s.flags.has('choice_back_hometown')) adjustSavings(s, -3000);
             s.flags.add('choice_filial_child');
           },
           result: (s) => s.flags.has('choice_back_hometown')
@@ -432,7 +432,7 @@ export const careerEvents: GameEvent[] = [
         label: '汇钱回去，请护工照顾',
         outcomes: [{
           weight: 100, condition: { salaryGte: 15000 },
-          apply: (s) => { adjustSalary(s, -5000); addScore(s, 'family', 3); s.flags.add('choice_money_over_presence'); },
+          apply: (s) => { adjustSavings(s, -5000); addScore(s, 'family', 3); s.flags.add('choice_money_over_presence'); },
           result: '钱到位了，但视频里妈妈总说「我们都好，你别惦记」——你知道她在骗你。',
         }],
       },
@@ -719,7 +719,7 @@ export const careerEvents: GameEvent[] = [
         label: '咬牙读，拓展人脉',
         outcomes: [{
           weight: 100, condition: { all: [] },
-          apply: (s) => { adjustSalary(s, -5000); addScore(s, 'career', 12); addScore(s, 'fame', 8); s.flags.add('milestone_mba'); worsenHealth(s); },
+          apply: (s) => { adjustSavings(s, -5000); addScore(s, 'career', 12); addScore(s, 'fame', 8); s.flags.add('milestone_mba'); worsenHealth(s); },
           result: '两年周末全泡在课堂和 case study。毕业时人脉圈换了一茬，简历也厚了。',
         }],
       },
@@ -749,7 +749,7 @@ export const careerEvents: GameEvent[] = [
         outcomes: [
           {
             weight: 40, condition: { flag: 'foreshadow_indie_dev' },
-            apply: (s) => { adjustSalary(s, 30000); addScore(s, 'career', 25); addScore(s, 'freedom', 15); s.flags.add('achievement_ipo_win'); },
+            apply: (s) => { adjustSavings(s, 30000); addScore(s, 'career', 25); addScore(s, 'freedom', 15); s.flags.add('achievement_ipo_win'); },
             result: '敲钟那天你在现场。期权解禁，你财务自由了——至少账面上。',
           },
           {
@@ -763,7 +763,7 @@ export const careerEvents: GameEvent[] = [
         label: '及时行权，落袋为安',
         outcomes: [{
           weight: 100, condition: { all: [] },
-          apply: (s) => { adjustSalary(s, 5000); addScore(s, 'freedom', 5); s.flags.add('choice_take_money'); },
+          apply: (s) => { adjustSavings(s, 5000); addScore(s, 'freedom', 5); s.flags.add('choice_take_money'); },
           result: '你提前离职行权，小赚一笔。后来公司真上市了——但你不后悔，落袋为安。',
         }],
       },
@@ -786,7 +786,7 @@ export const careerEvents: GameEvent[] = [
         label: '请长假，去山里待一个月',
         outcomes: [{
           weight: 100, condition: { salaryGte: 12000 },
-          apply: (s) => { improveHealth(s); addScore(s, 'freedom', 12); addScore(s, 'spirit', 8); adjustSalary(s, -3000); s.flags.add('choice_sabbatical'); },
+          apply: (s) => { improveHealth(s); addScore(s, 'freedom', 12); addScore(s, 'spirit', 8); adjustSavings(s, -3000); s.flags.add('choice_sabbatical'); },
           result: '大理的客栈里你睡足了 14 个小时。回来时，世界没塌，你却轻了。',
         }],
       },
@@ -794,7 +794,7 @@ export const careerEvents: GameEvent[] = [
         label: '看心理医生',
         outcomes: [{
           weight: 100, condition: { all: [] },
-          apply: (s) => { s.diseases.delete('depression'); improveHealth(s); adjustSalary(s, -2000); s.flags.add('choice_therapy'); },
+          apply: (s) => { s.diseases.delete('depression'); improveHealth(s); adjustSavings(s, -2000); s.flags.add('choice_therapy'); },
           result: (s) => s.flags.has('choice_independent_early')
             ? '医生说：「你不是不会扛，是扛太久了。」你第一次在陌生人面前哭了出来。'
             : '医生说你这是职业倦怠叠加轻度抑郁。半年咨询后，你学会了拒绝。',
@@ -1021,7 +1021,7 @@ export const careerEvents: GameEvent[] = [
         label: '囤现金，过冬准备',
         outcomes: [{
           weight: 100, condition: { all: [] },
-          apply: (s) => { adjustSalary(s, -2000); addScore(s, 'freedom', 8); s.flags.add('choice_prepare_winter'); },
+          apply: (s) => { adjustSavings(s, 2000); addScore(s, 'freedom', 8); s.flags.add('choice_prepare_winter'); },
           result: '你砍掉一切非必要开支，存够 18 个月生活费。冬天真来了时，你不慌。',
         }],
       },

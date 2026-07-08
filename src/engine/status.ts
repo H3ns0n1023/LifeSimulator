@@ -14,6 +14,8 @@ import {
   SALARY_SELF_EMPLOYED,
   SALARY_PENSION_RATE,
   SALARY_PENSION_GROWTH,
+  SAVINGS,
+  WEALTH_TIER,
 } from './constants';
 
 // 薪资机制配置聚合（applyYearlySalary 用）
@@ -132,19 +134,65 @@ export function adjustSalary(s: GameState, delta: number): void {
   s.salary = Math.max(0, Math.round(s.salary + delta));
 }
 
+// ============ 存款（成年经济水平）============
+
+/** 设置存款（允许归零）。 */
+export function setSavings(s: GameState, value: number): void {
+  s.savings = Math.max(0, Math.round(value));
+}
+
+/** 存款增减（可负，下限 0）。 */
+export function adjustSavings(s: GameState, delta: number): void {
+  s.savings = Math.max(0, Math.round(s.savings + delta));
+}
+
+// ============ 零花钱（学生期）============
+
+/** 设置零花钱（允许归零）。 */
+export function setAllowance(s: GameState, value: number): void {
+  s.allowance = Math.max(0, Math.round(value));
+}
+
+/** 零花钱增减（可负，下限 0）。 */
+export function adjustAllowance(s: GameState, delta: number): void {
+  s.allowance = Math.max(0, Math.round(s.allowance + delta));
+}
+
+// ============ 跨周目经济档位 ============
+
+/**
+ * 计算当前净资产（用于跨周目财富档位判定）。
+ * 净资产 = 存款 + 月薪 × 12（年薪折算）。
+ */
+export function netWorth(s: GameState): number {
+  return s.savings + s.salary * 12;
+}
+
+/**
+ * 判定经济档位：rich / mid / poor。
+ * 依据净资产阈值 WEALTH_TIER。
+ */
+export function wealthTier(s: GameState): 'rich' | 'mid' | 'poor' {
+  const w = netWorth(s);
+  if (w >= WEALTH_TIER.rich) return 'rich';
+  if (w < WEALTH_TIER.poor) return 'poor';
+  return 'mid';
+}
+
 /**
  * 年度薪资自动变动（由 applyYearlyTick 调用，按就业状态走不同规则）：
  *
- * - employed（在职）：大概率普调 +5%，小概率晋升 +15%，35 岁后涨速减半
- * - unemployed（失业）：每年消耗积蓄 -15%（逼近 0，模拟存款流失）
- * - selfEmployed（创业/自由职业）：高方差 ±20% 波动，长期微涨
- * - retired（退休）：退休金每年 +3%（抗通胀）
+ * - employed（在职）：大概率普调 +5%，小概率晋升 +15%，35 岁后涨速减半；每月按比例存入存款
+ * - unemployed（失业）：每年消耗存款 -15%（逼近 0，月薪保持上次值不变）
+ * - selfEmployed（创业/自由职业）：高方差 ±20% 波动，长期微涨；按比例存入存款
+ * - retired（退休）：退休金每年 +3%（抗通胀）；按比例存入存款
  * - student/monk/deceased：薪资不变
  *
  * 返回一个简短描述（可选，用于历史/日志展示）。
  */
 export function applyYearlySalary(s: GameState, rng: () => number): string | null {
   const SAL = salaryConfig; // 见文件末 import
+  const notes: string[] = [];
   switch (s.employment) {
     case 'employed': {
       // 35 岁后涨速打折
@@ -153,21 +201,26 @@ export function applyYearlySalary(s: GameState, rng: () => number): string | nul
       if (rng() < SAL.RAISE.promotionProb) {
         const raise = Math.round(s.salary * SAL.RAISE.promotionRate * mult);
         s.salary += raise;
-        return raise > 0 ? `晋升！月薪 +${raise}` : null;
-      }
-      if (rng() < SAL.RAISE.normalProb) {
+        if (raise > 0) notes.push(`晋升！月薪 +${raise}`);
+      } else if (rng() < SAL.RAISE.normalProb) {
         const raise = Math.round(s.salary * SAL.RAISE.normalRate * mult);
         s.salary += raise;
-        return raise > 0 ? `普调 +${raise}` : null;
+        if (raise > 0) notes.push(`普调 +${raise}`);
       }
-      return null; // 这年没涨
+      // 每月存入存款（年度结算 = salary * 12 * monthlySaveRate）
+      const deposit = Math.round(s.salary * 12 * SAVINGS.monthlySaveRate);
+      if (deposit > 0) {
+        s.savings += deposit;
+        notes.push(`存款 +${deposit}`);
+      }
+      return notes.length > 0 ? notes.join('，') : null;
     }
     case 'unemployed': {
-      // 消耗积蓄：salary *= (1 - drain)，逼近 0
-      const before = s.salary;
-      s.salary = Math.round(before * (1 - SAL.UNEMPLOYED_DRAIN));
-      const loss = before - s.salary;
-      return loss > 0 ? `失业积蓄 -${loss}` : null;
+      // 消耗存款：savings *= (1 - drain)，逼近 0；月薪保持上次值不变
+      const before = s.savings;
+      s.savings = Math.round(before * (1 - SAL.UNEMPLOYED_DRAIN));
+      const loss = before - s.savings;
+      return loss > 0 ? `失业消耗存款 -${loss}` : null;
     }
     case 'selfEmployed': {
       // ±volatility 波动 + 长期 trend 微涨
@@ -175,13 +228,27 @@ export function applyYearlySalary(s: GameState, rng: () => number): string | nul
       const trend = SAL.SELF.trend;
       const delta = Math.round(s.salary * (trend + shock));
       s.salary = Math.max(0, s.salary + delta);
-      return delta !== 0 ? `生意波动 ${delta > 0 ? '+' : ''}${delta}` : null;
+      if (delta !== 0) notes.push(`生意波动 ${delta > 0 ? '+' : ''}${delta}`);
+      // 创业也按比例存入存款（用波动后月薪）
+      const deposit = Math.round(Math.max(0, s.salary) * 12 * SAVINGS.monthlySaveRate);
+      if (deposit > 0) {
+        s.savings += deposit;
+        notes.push(`存款 +${deposit}`);
+      }
+      return notes.length > 0 ? notes.join('，') : null;
     }
     case 'retired': {
       // 退休金随通胀微涨
       const raise = Math.round(s.salary * SAL.PENSION_GROWTH);
       s.salary += raise;
-      return raise > 0 ? `退休金 +${raise}` : null;
+      if (raise > 0) notes.push(`退休金 +${raise}`);
+      // 退休也按比例存入存款
+      const deposit = Math.round(s.salary * 12 * SAVINGS.monthlySaveRate);
+      if (deposit > 0) {
+        s.savings += deposit;
+        notes.push(`存款 +${deposit}`);
+      }
+      return notes.length > 0 ? notes.join('，') : null;
     }
     default:
       // student / monk / deceased：薪资不变

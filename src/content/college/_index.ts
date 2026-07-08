@@ -1,6 +1,6 @@
 // src/content/college/_index.ts
 import type { GameEvent } from '../../engine/types';
-import { addScore, adjustSalary, transitionEmployment, worsenHealth } from '../../engine/status';
+import { addScore, adjustSalary, adjustSavings, transitionEmployment, worsenHealth } from '../../engine/status';
 
 export const collegeEvents: GameEvent[] = [
   // 1. 社团加入 — 19-21 岁
@@ -49,12 +49,12 @@ export const collegeEvents: GameEvent[] = [
         outcomes: [
           {
             weight: 60, condition: { scoreGte: { career: 15 } },
-            apply: (s) => { adjustSalary(s, 3000); addScore(s, 'career', 5); s.flags.add('skill_intern'); },
+            apply: (s) => { adjustSavings(s, 3000); addScore(s, 'career', 5); s.flags.add('skill_intern'); },
             result: '实习三个月，你拿到了第一笔像样的工资。',
           },
           {
             weight: 40, condition: { all: [] },
-            apply: (s) => { adjustSalary(s, 1000); },
+            apply: (s) => { adjustSavings(s, 1000); },
             result: '实习主要是打杂，但你至少混了份简历。',
           },
         ],
@@ -63,7 +63,7 @@ export const collegeEvents: GameEvent[] = [
         label: '水一个就好',
         outcomes: [{
           weight: 100, condition: { all: [] },
-          apply: (s) => { addScore(s, 'freedom', 5); adjustSalary(s, 500); },
+          apply: (s) => { addScore(s, 'freedom', 5); adjustSavings(s, 500); },
           result: '你在实习公司摸鱼三个月，学到了如何装忙。',
         }],
       },
@@ -274,7 +274,7 @@ export const collegeEvents: GameEvent[] = [
       {
         label: '去！青春不能留遗憾',
         outcomes: [{
-          weight: 100, condition: { salaryGte: 2000 },
+          weight: 100, condition: { savingsGte: 2000 },
           apply: (s) => { addScore(s, 'freedom', 15); addScore(s, 'family', 5); s.flags.add('achievement_graduation_trip'); },
           result: '雪山、星空、徒步、暴晒——你和兄弟们成了彼此一辈子的话题。',
         }],

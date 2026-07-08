@@ -33,6 +33,9 @@ export function loadGame(): SaveData | null {
       ...parsed,
       state: {
         ...parsed.state,
+        // 新增字段旧档容错（savings/allowance 是 number，旧档缺失默认 0）
+        savings: parsed.state.savings ?? 0,
+        allowance: parsed.state.allowance ?? 0,
         flags: new Set<string>(parsed.state.flags ?? []),
         diseases: new Set<string>(parsed.state.diseases ?? []),
       },

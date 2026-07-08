@@ -1,6 +1,6 @@
 // src/content/thresholds/crisis-low-health.ts
 import type { GameEvent } from '../../engine/types';
-import { improveHealth, adjustSalary, worsenHealth, setHealth } from '../../engine/status';
+import { improveHealth, adjustSavings, worsenHealth, setHealth } from '../../engine/status';
 import { THRESHOLDS } from '../../engine/constants';
 
 export const crisisLowHealth: GameEvent = {
@@ -21,8 +21,8 @@ export const crisisLowHealth: GameEvent = {
       label: '住院体检',
       outcomes: [{
         weight: 100,
-        condition: { salaryGte: 8000 },
-        apply: (s) => { improveHealth(s); adjustSalary(s, -3000); s.flags.add('crisis_low_health_fired'); },
+        condition: { savingsGte: 8000 },
+        apply: (s) => { improveHealth(s); adjustSavings(s, -3000); s.flags.add('crisis_low_health_fired'); },
         result: '医生警告你注意身体，你乖乖听话。',
       }],
     },

@@ -16,6 +16,14 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
   if ('salaryGte' in condition) return state.salary >= condition.salaryGte;
   if ('salaryLt' in condition) return state.salary < condition.salaryLt;
 
+  // —— 存款（成年经济水平，一次性大额消费能力）——
+  if ('savingsGte' in condition) return state.savings >= condition.savingsGte;
+  if ('savingsLt' in condition) return state.savings < condition.savingsLt;
+
+  // —— 零花钱（学生期购买力）——
+  if ('allowanceGte' in condition) return state.allowance >= condition.allowanceGte;
+  if ('allowanceLt' in condition) return state.allowance < condition.allowanceLt;
+
   // —— 健康档位 ——
   if ('healthIn' in condition) return condition.healthIn.includes(state.health);
   if ('healthGte' in condition) {

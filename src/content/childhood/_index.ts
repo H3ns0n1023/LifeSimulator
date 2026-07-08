@@ -1,6 +1,7 @@
 // src/content/childhood/_index.ts
 import type { GameEvent } from '../../engine/types';
-import { addScore, addDisease, worsenHealth } from '../../engine/status';
+import { addScore, addDisease, worsenHealth, setAllowance } from '../../engine/status';
+import { ALLOWANCE } from '../../engine/constants';
 
 export const childhoodEvents: GameEvent[] = [
   // 1. 殷实家境 — 事业线铺垫
@@ -11,8 +12,8 @@ export const childhoodEvents: GameEvent[] = [
     text: '你出生在一个殷实的家庭。父母带你到处旅行。',
     choices: [{ label: '继续', outcomes: [{
       weight: 100, condition: { all: [] },
-      apply: (s) => { addScore(s, 'career', 5); addScore(s, 'family', 3); s.flags.add('milestone_rich_family'); },
-      result: '你见多识广，比同龄人成熟。',
+      apply: (s) => { addScore(s, 'career', 5); addScore(s, 'family', 3); s.flags.add('milestone_rich_family'); s.flags.add('family_rich'); setAllowance(s, ALLOWANCE.rich); },
+      result: '你见多识广，比同龄人成熟。零花钱也格外宽裕。',
     }]}],
   },
   {
@@ -22,8 +23,8 @@ export const childhoodEvents: GameEvent[] = [
     text: '你的家境普通，父母为生活奔波。',
     choices: [{ label: '继续', outcomes: [{
       weight: 100, condition: { all: [] },
-      apply: (s) => { addDisease(s, 'malnutrition'); addScore(s, 'career', 3); s.flags.add('milestone_poor_family'); },
-      result: '你早早学会了独立，但营养有点跟不上。',
+      apply: (s) => { addDisease(s, 'malnutrition'); addScore(s, 'career', 3); s.flags.add('milestone_poor_family'); s.flags.add('family_poor'); setAllowance(s, ALLOWANCE.poor); },
+      result: '你早早学会了独立，但营养有点跟不上。零花钱也少得可怜。',
     }]}],
   },
 
@@ -130,11 +131,11 @@ export const childhoodEvents: GameEvent[] = [
       {
         label: '偷偷把它抱回家养',
         outcomes: [{
-          weight: 100, condition: { salaryGte: 3000 },
+          weight: 100, condition: { allowanceGte: 100 },
           apply: (s) => { addScore(s, 'family', 8); s.flags.add('milestone_has_pet'); s.flags.add('choice_kind_heart'); },
           result: '橘猫从此成了你的童年伙伴，长得越来越圆。',
         },{
-          weight: 100, condition: { salaryLt: 3000 },
+          weight: 100, condition: { allowanceLt: 100 },
           apply: (s) => { addScore(s, 'family', 3); s.flags.add('choice_kind_heart'); },
           result: '妈妈不让养，你含泪送走了它。但你记住了那种牵挂。',
         }],

@@ -94,6 +94,54 @@ describe('applyYearlyTick', () => {
     expect(s.age).toBe(61);
     expect(s.stage).toBe('retirement');
   });
+
+  // —— 金钱细化：存款利息 + 学生零花钱累计 ——
+  it('employed 每年按月薪比例存入存款并产生利息', () => {
+    // salary 10000，起手 savings 10000，age 30（不触发健康衰减）
+    // rng 0.999：既不晋升也不普调（调 2 次：晋升、普调）
+    // 存款入账 10000*12*0.2=24000 → savings 变 34000
+    // 利息按存入后的 savings 算：34000*0.02=680 → savings 变 34680
+    const s = makeState({ age: 30, employment: 'employed', salary: 10000, savings: 10000 });
+    applyYearlyTick(s, () => 0.999);
+    expect(s.savings).toBe(10000 + 24000 + 680);
+  });
+
+  it('学生期每年零花钱累计入存款', () => {
+    // student，allowance 200，savings 0 → 累计 200*12=2400
+    const s = makeState({ age: 10, stage: 'school', employment: 'student', allowance: 200, savings: 0 });
+    applyYearlyTick(s, () => 0.5);
+    expect(s.savings).toBe(2400);
+  });
+
+  // —— 彩票开奖 ——
+  it('买过彩票且中头奖：savings 大幅增加', () => {
+    const s = makeState({ age: 30, employment: 'employed', salary: 10000, savings: 1000 });
+    s.flags.add('lottery_bought_this_year');
+    // employed 分支调 2 次 rng（晋升 0.999、普调 0.999），第 3 次开奖需 < 0.001 中头奖
+    const seq = [0.999, 0.999, 0.0005];
+    let i = 0;
+    applyYearlyTick(s, () => seq[i++]);
+    // 头奖 50 万 + 存款入账 24000 + 利息
+    expect(s.savings).toBeGreaterThan(500000);
+    expect(s.flags.has('lottery_bought_this_year')).toBe(false); // 开奖后清除
+  });
+
+  it('买过彩票但未中奖：savings 仅含存款入账与利息', () => {
+    const s = makeState({ age: 30, employment: 'employed', salary: 10000, savings: 1000 });
+    s.flags.add('lottery_bought_this_year');
+    // 第 3 次开奖 rng = 0.999 > 0.1 → 未中奖
+    const seq = [0.999, 0.999, 0.999];
+    let i = 0;
+    applyYearlyTick(s, () => seq[i++]);
+    // 存款 = 入账 24000 + 利息（1000+24000=25000 → *0.02=500）
+    expect(s.savings).toBe(1000 + 24000 + 500);
+  });
+
+  it('没买彩票则不开奖', () => {
+    const s = makeState({ age: 30, employment: 'employed', salary: 10000, savings: 1000 });
+    applyYearlyTick(s, () => 0.999);
+    expect(s.flags.has('lottery_bought_this_year')).toBe(false);
+  });
 });
 
 describe('checkDeath', () => {

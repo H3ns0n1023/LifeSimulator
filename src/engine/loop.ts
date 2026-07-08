@@ -6,8 +6,11 @@ import {
   STAGE_OF_AGE,
   HEALTH_DECAY_AGE,
   HEALTH_DECAY_PROBABILITY,
+  SAVINGS,
+  ALLOWANCE,
+  LOTTERY,
 } from './constants';
-import { worsenHealth, applyYearlySalary } from './status';
+import { worsenHealth, applyYearlySalary, adjustSavings } from './status';
 
 /**
  * Select 0-3 event IDs for the current year.
@@ -55,10 +58,44 @@ export function applyYearlyTick(state: GameState, rng: () => number): void {
   state.stage = STAGE_OF_AGE(state.age);
   // 薪资年度变动（用同一个 rng 流，保证可复现）
   const salaryNote = applyYearlySalary(state, rng);
-  if (salaryNote) {
+  // —— 存款年度结算（利息 + 学生零花钱入账）——
+  const financeNotes: string[] = [];
+  if (salaryNote) financeNotes.push(salaryNote);
+  // 学生期：每年零花钱按月额 × 12 累计入存款（allowance 保持月额不变）
+  if (state.employment === 'student' && state.allowance > 0) {
+    const yearlyAllowance = state.allowance * 12;
+    adjustSavings(state, yearlyAllowance);
+    financeNotes.push(`零花钱累计 +${yearlyAllowance}`);
+  }
+  // 存款年利息（仅成年后就业/失业/退休有存款时）
+  if (state.savings > 0 && state.employment !== 'student') {
+    const interest = Math.round(state.savings * SAVINGS.interestRate);
+    if (interest > 0) {
+      adjustSavings(state, interest);
+      financeNotes.push(`存款利息 +${interest}`);
+    }
+  }
+  // —— 彩票年底开奖（本年买过彩票才开）——
+  if (state.flags.has('lottery_bought_this_year')) {
+    state.flags.delete('lottery_bought_this_year');
+    const r = rng();
+    if (r < LOTTERY.jackpotProb) {
+      adjustSavings(state, LOTTERY.jackpotPrize);
+      financeNotes.push(`彩票中头奖 +${LOTTERY.jackpotPrize}！`);
+    } else if (r < LOTTERY.secondProb) {
+      adjustSavings(state, LOTTERY.secondPrize);
+      financeNotes.push(`彩票中奖 +${LOTTERY.secondPrize}`);
+    } else if (r < LOTTERY.thirdProb) {
+      adjustSavings(state, LOTTERY.thirdPrize);
+      financeNotes.push(`彩票小奖 +${LOTTERY.thirdPrize}`);
+    } else {
+      financeNotes.push('彩票未中奖');
+    }
+  }
+  if (financeNotes.length > 0) {
     const noteId = `note_salary_${state.age}`;
     if (!state.history.includes(noteId)) state.history.push(noteId);
-    state.flags.add(`last_salary_note|${salaryNote}`); // UI 可读取展示
+    state.flags.add(`last_salary_note|${financeNotes.join('，')}`); // UI 可读取展示
   }
   // 健康随年龄概率性下降（40 岁后）
   if (state.age > HEALTH_DECAY_AGE) {

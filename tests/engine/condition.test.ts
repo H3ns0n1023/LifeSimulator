@@ -31,6 +31,28 @@ describe('evaluateCondition', () => {
     expect(evaluateCondition({ salaryLt: 10000 }, makeState({ salary: 8000 }))).toBe(true);
   });
 
+  // —— 存款 ——
+  it('savingsGte: returns true when savings >= threshold', () => {
+    expect(evaluateCondition({ savingsGte: 5000 }, makeState({ savings: 5000 }))).toBe(true);
+  });
+
+  it('savingsGte: returns false when savings < threshold', () => {
+    expect(evaluateCondition({ savingsGte: 10000 }, makeState({ savings: 5000 }))).toBe(false);
+  });
+
+  it('savingsLt: returns true when savings < threshold', () => {
+    expect(evaluateCondition({ savingsLt: 10000 }, makeState({ savings: 5000 }))).toBe(true);
+  });
+
+  // —— 零花钱 ——
+  it('allowanceGte: returns true when allowance >= threshold', () => {
+    expect(evaluateCondition({ allowanceGte: 200 }, makeState({ allowance: 200 }))).toBe(true);
+  });
+
+  it('allowanceLt: returns true when allowance < threshold', () => {
+    expect(evaluateCondition({ allowanceLt: 100 }, makeState({ allowance: 50 }))).toBe(true);
+  });
+
   // —— 健康档位 ——
   it('healthIn: returns true when health is in list', () => {
     expect(evaluateCondition({ healthIn: ['healthy', 'subhealthy'] }, makeState({ health: 'healthy' }))).toBe(true);

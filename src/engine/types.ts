@@ -55,6 +55,12 @@ export type Condition =
   // —— 月薪（唯一核心数字指标）——
   | { salaryGte: number }
   | { salaryLt: number }
+  // —— 存款（成年经济水平，一次性大额消费能力）——
+  | { savingsGte: number }
+  | { savingsLt: number }
+  // —— 零花钱（学生期购买力）——
+  | { allowanceGte: number }
+  | { allowanceLt: number }
   // —— 健康档位判定 ——
   | { healthIn: HealthStage[] }
   | { healthGte: HealthStage }            // 严重程度 >= 某档（critical 最严重）
@@ -79,8 +85,10 @@ export type Condition =
 export interface GameState {
   age: number;
   stage: LifeStage;
-  // ★ 2 个核心可见指标
-  salary: number;          // 月薪（元），唯一数字指标
+  // ★ 3 个核心可见指标
+  salary: number;          // 月薪（成年在职/退休金，元）
+  savings: number;         // 存款（成年后反映经济水平，元）
+  allowance: number;       // 零花钱（学生期，元；由家庭条件决定）
   health: HealthStage;     // 健康五档
   // ★ 健康细节（病症标签）
   diseases: Set<string>;   // fatty_liver / hypertension / insomnia / depression / cancer ...
@@ -97,6 +105,7 @@ export interface GameState {
     seed: number;
     playthrough: number;
     carryover?: CarryingKind;
+    prevWealthTier?: 'rich' | 'mid' | 'poor';  // 上一世经济档位（跨周目传承家境）
   };
 }
 

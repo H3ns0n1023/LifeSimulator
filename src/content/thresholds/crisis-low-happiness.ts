@@ -1,6 +1,6 @@
 // src/content/thresholds/crisis-low-happiness.ts
 import type { GameEvent } from '../../engine/types';
-import { addScore, adjustSalary, worsenHealth, addDisease } from '../../engine/status';
+import { addScore, adjustSalary, adjustSavings, worsenHealth, addDisease } from '../../engine/status';
 
 // 阈值事件：抑郁触发（disease=depression 时触发）
 export const crisisLowHappiness: GameEvent = {
@@ -24,7 +24,7 @@ export const crisisLowHappiness: GameEvent = {
         condition: { all: [] },
         apply: (s) => {
           addScore(s, 'family', 10);
-          adjustSalary(s, -1000);
+          adjustSavings(s, -1000);
           s.diseases.delete('depression');
           s.flags.add('crisis_low_happiness_fired');
         },

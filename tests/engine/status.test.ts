@@ -5,6 +5,8 @@ import {
   addDisease, removeDisease, hasDisease,
   transitionEmployment, transitionMarriage,
   setSalary, adjustSalary, applyYearlySalary,
+  setSavings, adjustSavings, setAllowance, adjustAllowance,
+  netWorth, wealthTier,
   addScore, totalScore, topTrack,
 } from '../../src/engine/status';
 import { makeState } from '../fixtures';
@@ -200,27 +202,30 @@ describe('年度薪资变动 applyYearlySalary', () => {
     expect(s.salary).toBe(10750);
   });
 
-  it('employed 不涨的年份：rng 都高于阈值', () => {
-    // 0.9 > 0.15 且 0.9 > 0.7 → 既不晋升也不普调
-    const s = makeState({ employment: 'employed', salary: 10000, age: 25 });
+  it('employed 不涨的年份：rng 都高于阈值（不涨薪但仍存入存款）', () => {
+    // 0.9 > 0.15 且 0.9 > 0.7 → 既不晋升也不普调，但每月仍按比例存入存款
+    const s = makeState({ employment: 'employed', salary: 10000, age: 25, savings: 0 });
     const note = applyYearlySalary(s, () => 0.9);
     expect(s.salary).toBe(10000);
-    expect(note).toBeNull();
+    // 存款 = salary * 12 * monthlySaveRate(0.2) = 10000 * 12 * 0.2 = 24000
+    expect(s.savings).toBe(24000);
+    expect(note).toContain('存款');
   });
 
   // —— 失业 ——
-  it('unemployed 每年消耗积蓄 15%', () => {
-    const s = makeState({ employment: 'unemployed', salary: 10000 });
+  it('unemployed 每年消耗存款 15%（月薪保持不变）', () => {
+    const s = makeState({ employment: 'unemployed', salary: 10000, savings: 10000 });
     const note = applyYearlySalary(s, () => 0.5);
-    // 10000 * (1 - 0.15) = 8500
-    expect(s.salary).toBe(8500);
+    // 失业扣存款不扣月薪：10000 * (1 - 0.15) = 8500
+    expect(s.salary).toBe(10000);   // 月薪不变
+    expect(s.savings).toBe(8500);   // 存款消耗
     expect(note).toContain('失业');
   });
 
-  it('unemployed 薪资逼近 0 但不为负', () => {
-    const s = makeState({ employment: 'unemployed', salary: 100 });
+  it('unemployed 存款逼近 0 但不为负', () => {
+    const s = makeState({ employment: 'unemployed', salary: 100, savings: 100 });
     applyYearlySalary(s, () => 0.5);
-    expect(s.salary).toBeGreaterThanOrEqual(0);
+    expect(s.savings).toBeGreaterThanOrEqual(0);
   });
 
   // —— 自由职业/创业 ——
@@ -262,5 +267,40 @@ describe('年度薪资变动 applyYearlySalary', () => {
     const note = applyYearlySalary(s, () => 0.5);
     expect(s.salary).toBe(0);
     expect(note).toBeNull();
+  });
+});
+
+// ============ 存款 / 零花钱 / 财富档位 ============
+describe('金钱细化：存款 / 零花钱 / 财富档位', () => {
+  it('setSavings / adjustSavings 增减且不下穿 0', () => {
+    const s = makeState({ savings: 1000 });
+    adjustSavings(s, 500);
+    expect(s.savings).toBe(1500);
+    adjustSavings(s, -2000);
+    expect(s.savings).toBe(0); // 下限 0
+    setSavings(s, 800);
+    expect(s.savings).toBe(800);
+  });
+
+  it('setAllowance / adjustAllowance 增减且不下穿 0', () => {
+    const s = makeState({ allowance: 100 });
+    adjustAllowance(s, 50);
+    expect(s.allowance).toBe(150);
+    adjustAllowance(s, -300);
+    expect(s.allowance).toBe(0);
+  });
+
+  it('netWorth = savings + salary * 12', () => {
+    const s = makeState({ salary: 8000, savings: 4000 });
+    expect(netWorth(s)).toBe(4000 + 8000 * 12);
+  });
+
+  it('wealthTier 按净资产分档', () => {
+    // rich：> 300000
+    expect(wealthTier(makeState({ salary: 30000, savings: 0 }))).toBe('rich'); // 360000
+    // poor：< 30000
+    expect(wealthTier(makeState({ salary: 0, savings: 10000 }))).toBe('poor');
+    // mid：介于两者之间
+    expect(wealthTier(makeState({ salary: 5000, savings: 20000 }))).toBe('mid'); // 80000
   });
 });

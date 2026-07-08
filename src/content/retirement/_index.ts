@@ -1,6 +1,6 @@
 // src/content/retirement/_index.ts
 import type { GameEvent } from '../../engine/types';
-import { addScore, transitionEmployment, transitionMarriage, adjustSalary, addDisease, worsenHealth, improveHealth, setSalary } from '../../engine/status';
+import { addScore, transitionEmployment, transitionMarriage, adjustSalary, adjustSavings, addDisease, worsenHealth, improveHealth, setSalary } from '../../engine/status';
 import { SALARY_PENSION_RATE } from '../../engine/constants';
 
 export const retirementEvents: GameEvent[] = [
@@ -173,12 +173,12 @@ export const retirementEvents: GameEvent[] = [
         outcomes: [
           {
             weight: 100, condition: { healthIn: ['healthy', 'subhealthy', 'mild'] },
-            apply: (s) => { adjustSalary(s, -3000); improveHealth(s); s.flags.add('choice_fight_illness'); },
+            apply: (s) => { adjustSavings(s, -3000); improveHealth(s); s.flags.add('choice_fight_illness'); },
             result: '化疗很苦，但你挺过来了。出院那天，阳光格外温暖。',
           },
           {
             weight: 100, condition: { healthIn: ['severe', 'critical'] },
-            apply: (s) => { adjustSalary(s, -3000); worsenHealth(s); s.flags.add('crisis_serious_illness'); },
+            apply: (s) => { adjustSavings(s, -3000); worsenHealth(s); s.flags.add('crisis_serious_illness'); },
             result: '治疗让你元气大伤。你开始整理那些一直没整理的东西。',
           },
         ],
@@ -200,7 +200,7 @@ export const retirementEvents: GameEvent[] = [
     stage: 'retirement', ageRange: [63, 72], once: true,
     trigger: {
       baseWeight: 5,
-      requires: [{ salaryGte: 8000 }],
+      requires: [{ savingsGte: 8000 }],
     },
     text: '老伙计们约你：「趁着腿脚还利索，去趟新疆？或者更远点，欧洲十国游？」',
     choices: [
@@ -208,7 +208,7 @@ export const retirementEvents: GameEvent[] = [
         label: '出发！趁还走得动',
         outcomes: [{
           weight: 100, condition: { healthIn: ['healthy', 'subhealthy'] },
-          apply: (s) => { addScore(s, 'freedom', 15); addScore(s, 'fame', 8); adjustSalary(s, -5000); s.flags.add('achievement_world_travel'); },
+          apply: (s) => { addScore(s, 'freedom', 15); addScore(s, 'fame', 8); adjustSavings(s, -5000); s.flags.add('achievement_world_travel'); },
           result: '你在巴黎铁塔下比了剪刀手，在新疆草原上骑了马。一辈子值了。',
         }],
       },

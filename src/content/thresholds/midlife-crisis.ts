@@ -1,6 +1,6 @@
 // src/content/thresholds/midlife-crisis.ts
 import type { GameEvent } from '../../engine/types';
-import { transitionEmployment, addScore, adjustSalary } from '../../engine/status';
+import { transitionEmployment, addScore, adjustSalary, adjustSavings } from '../../engine/status';
 import { THRESHOLDS } from '../../engine/constants';
 
 export const midlifeCrisis: GameEvent = {
@@ -38,7 +38,7 @@ export const midlifeCrisis: GameEvent = {
         condition: { all: [] },
         apply: (s) => {
           transitionEmployment(s, 'selfEmployed');
-          adjustSalary(s, -5000);
+          adjustSavings(s, -5000);
           addScore(s, 'career', 15);
           s.flags.add('choice_startup');
           s.flags.add('midlife_crisis_fired');

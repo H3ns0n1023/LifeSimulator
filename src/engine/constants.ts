@@ -97,6 +97,57 @@ export const SALARY_PENSION_GROWTH = 0.03;    // 退休金每年 +3%（抗通胀
 // 起薪基准（应届生入职参考）
 export const STARTING_SALARY = 6000;
 
+// ============ 零花钱（学生期，由家境决定）============
+export const ALLOWANCE = {
+  rich: 200,      // 殷实家庭：每月零花钱 200
+  poor: 20,       // 普通家庭：每月零花钱 20
+  base: 50,       // 默认/未触发家境事件
+  // 零花钱年度入账 = 月额 × 12（applyYearlyTick 给 student 结算）
+};
+
+// ============ 成年存款机制 ============
+export const SAVINGS = {
+  starting: 0,            // 就业起手存款（毕业时清零转入）
+  monthlySaveRate: 0.2,   // 每月把月薪的 20% 存入存款（年度 = salary * 12 * 0.2）
+  interestRate: 0.02,     // 存款年利息 2%
+};
+
+// ============ 跨周目经济档位阈值 ============
+// 净资产 = savings + salary * 12，用于判定上一世财富档位传承下世家境
+export const WEALTH_TIER = {
+  rich: 300000,   // > 30万 → 富
+  poor: 30000,    // < 3万 → 穷
+  // 中间为 mid
+};
+
+// ============ 商店商品清单 ============
+export interface ShopItem {
+  id: string;
+  name: string;
+  price: number;
+  desc: string;
+  // 学生期可用 allowance 购买，成年用 savings
+  studentOnly?: boolean;
+}
+
+export const SHOP_ITEMS: ShopItem[] = [
+  { id: 'medicine',   name: '买药',     price: 500,   desc: '治疗小病，健康好转一档' },
+  { id: 'see_doctor', name: '看病',     price: 3000,  desc: '治疗大病，健康好转两档 + 治愈一种病症' },
+  { id: 'lottery',    name: '买彩票',   price: 20,    desc: '每年底开奖，小概率暴富' },
+  { id: 'gym_card',   name: '健身卡',   price: 2000,  desc: '健康好转一档' },
+  { id: 'supplement', name: '营养品',   price: 800,   desc: '治愈营养不良，健康好转一档' },
+];
+
+// ============ 彩票开奖概率（年底统一开奖）============
+export const LOTTERY = {
+  jackpotProb: 0.001,    // 千分之一：50 万
+  jackpotPrize: 500000,
+  secondProb: 0.01,      // 百分之一：1 万
+  secondPrize: 10000,
+  thirdProb: 0.1,        // 十分之一：200
+  thirdPrize: 200,
+};
+
 // 重病症：一旦确诊，自动把健康降到指定档
 export const DISEASE_IMPACT: Record<string, HealthStage> = {
   insomnia: 'subhealthy',

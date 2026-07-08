@@ -15,6 +15,9 @@ const MARRIAGE_LABEL: Record<string, string> = {
 
 const tracks: EndingTrack[] = ['career', 'family', 'freedom', 'fame', 'spirit'];
 
+// 学生期（student）显示零花钱，成年显示月薪+存款
+const isStudent = computed(() => props.state.employment === 'student');
+
 function bar(v: number) {
   return { width: `${Math.max(0, Math.min(100, (v / SCORE_MAX) * 100))}%` };
 }
@@ -56,13 +59,24 @@ const salaryNoteTone = computed(() => {
   <aside class="attr-panel">
     <!-- 核心指标 -->
     <h3>核心</h3>
-    <div class="row">
+    <!-- 学生期：显示零花钱（月薪为 0 不显示） -->
+    <div v-if="isStudent" class="row">
+      <span class="label">零花钱</span>
+      <span class="value" :class="{ zero: props.state.allowance === 0 }">{{ fmtSalary(props.state.allowance) }}</span>
+    </div>
+    <!-- 成年：显示月薪 -->
+    <div v-else class="row">
       <span class="label">月薪</span>
       <span class="value" :class="{ zero: props.state.salary === 0 }">{{ fmtSalary(props.state.salary) }}</span>
     </div>
     <div v-if="salaryNote" class="row salary-note" :class="salaryNoteTone">
       <span class="label"></span>
       <span class="note-text">↳ {{ salaryNote }}</span>
+    </div>
+    <!-- 存款（学生期也会累计零花钱进来，始终显示） -->
+    <div class="row">
+      <span class="label">存款</span>
+      <span class="value" :class="{ zero: props.state.savings === 0 }">{{ fmtSalary(props.state.savings) }}</span>
     </div>
     <div class="row">
       <span class="label">健康</span>

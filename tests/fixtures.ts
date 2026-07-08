@@ -12,6 +12,8 @@ export function makeState(overrides: Partial<GameState> = {}): GameState {
     age: 25,
     stage: 'career',
     salary: 8000,
+    savings: 0,
+    allowance: 0,
     health: 'healthy',
     diseases: new Set<string>(),
     employment: 'employed',
