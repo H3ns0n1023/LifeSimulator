@@ -1,0 +1,214 @@
+// src/engine/status.ts
+// 状态机受控转换函数 + 健康档位操作 + 病症管理
+// 所有对 employment / marriage / health 的修改都应走这里，以保证一致性。
+import type { GameState, HealthStage, Employment, Marriage, EndingTrack } from './types';
+import {
+  HEALTH_RANK,
+  HEALTH_ORDER,
+  EMPLOYMENT_TRANSITIONS,
+  MARRIAGE_TRANSITIONS,
+  DISEASE_IMPACT,
+  SCORE_MAX,
+  SALARY_RAISE,
+  SALARY_UNEMPLOYED_DRAIN,
+  SALARY_SELF_EMPLOYED,
+  SALARY_PENSION_RATE,
+  SALARY_PENSION_GROWTH,
+} from './constants';
+
+// 薪资机制配置聚合（applyYearlySalary 用）
+const salaryConfig = {
+  RAISE: SALARY_RAISE,
+  UNEMPLOYED_DRAIN: SALARY_UNEMPLOYED_DRAIN,
+  SELF: SALARY_SELF_EMPLOYED,
+  PENSION_RATE: SALARY_PENSION_RATE,
+  PENSION_GROWTH: SALARY_PENSION_GROWTH,
+};
+
+// ============ 健康档位操作 ============
+
+/** 健康恶化一档（不会超过 critical）。返回是否真的恶化了。 */
+export function worsenHealth(s: GameState): boolean {
+  const cur = HEALTH_RANK[s.health];
+  if (cur >= HEALTH_RANK.critical) return false;
+  s.health = HEALTH_ORDER[cur + 1];
+  return true;
+}
+
+/** 健康好转一档（不会超过 healthy）。返回是否真的好转了。 */
+export function improveHealth(s: GameState): boolean {
+  const cur = HEALTH_RANK[s.health];
+  if (cur <= HEALTH_RANK.healthy) return false;
+  s.health = HEALTH_ORDER[cur - 1];
+  return true;
+}
+
+/** 直接设置健康档位（用于重病确诊）。 */
+export function setHealth(s: GameState, stage: HealthStage): void {
+  s.health = stage;
+}
+
+/** 健康严重程度是否 >= 某档（critical 最严重）。 */
+export function healthAtLeast(s: GameState, stage: HealthStage): boolean {
+  return HEALTH_RANK[s.health] >= HEALTH_RANK[stage];
+}
+
+// ============ 病症管理 ============
+
+/**
+ * 确诊一个病症。
+ * - 若病症在 DISEASE_IMPACT 里且当前健康档位比它应导致的档位轻，则把健康降到该档。
+ * - 已确诊过则幂等（不重复降档）。
+ */
+export function addDisease(s: GameState, disease: string): void {
+  if (s.diseases.has(disease)) return; // 幂等
+  s.diseases.add(disease);
+  const impact = DISEASE_IMPACT[disease];
+  if (impact && HEALTH_RANK[s.health] < HEALTH_RANK[impact]) {
+    s.health = impact;
+  }
+}
+
+/** 移除一个病症（治愈）。注意：不会自动恢复健康档位，需手动 improveHealth。 */
+export function removeDisease(s: GameState, disease: string): void {
+  s.diseases.delete(disease);
+}
+
+/** 是否患有某病。 */
+export function hasDisease(s: GameState, disease: string): boolean {
+  return s.diseases.has(disease);
+}
+
+// ============ 就业状态机 ============
+
+/**
+ * 受控的就业状态转换。
+ * 查 EMPLOYMENT_TRANSITIONS 表，非法转换抛错（开发期立刻发现冲突）。
+ */
+export function transitionEmployment(s: GameState, target: Employment): void {
+  const allowed = EMPLOYMENT_TRANSITIONS[s.employment];
+  if (!allowed.includes(target)) {
+    throw new Error(
+      `[状态机] 非法就业转换：${s.employment} → ${target}（当前年龄 ${s.age}）。` +
+      `合法去向：${allowed.join(' / ') || '（无，终局状态）'}`,
+    );
+  }
+  s.employment = target;
+}
+
+/** 当前是否处于某一就业状态。 */
+export function isEmployedAs(s: GameState, e: Employment): boolean {
+  return s.employment === e;
+}
+
+/** 是否处于任一就业状态。 */
+export function employmentIn(s: GameState, list: Employment[]): boolean {
+  return list.includes(s.employment);
+}
+
+// ============ 婚姻状态机 ============
+
+/** 受控的婚姻状态转换。查 MARRIAGE_TRANSITIONS 表，非法转换抛错。 */
+export function transitionMarriage(s: GameState, target: Marriage): void {
+  const allowed = MARRIAGE_TRANSITIONS[s.marriage];
+  if (!allowed.includes(target)) {
+    throw new Error(
+      `[状态机] 非法婚姻转换：${s.marriage} → ${target}。` +
+      `合法去向：${allowed.join(' / ')}`,
+    );
+  }
+  s.marriage = target;
+}
+
+// ============ 月薪 ============
+
+/** 设置月薪（允许归零）。 */
+export function setSalary(s: GameState, value: number): void {
+  s.salary = Math.max(0, Math.round(value));
+}
+
+/** 月薪增减（可负）。 */
+export function adjustSalary(s: GameState, delta: number): void {
+  s.salary = Math.max(0, Math.round(s.salary + delta));
+}
+
+/**
+ * 年度薪资自动变动（由 applyYearlyTick 调用，按就业状态走不同规则）：
+ *
+ * - employed（在职）：大概率普调 +5%，小概率晋升 +15%，35 岁后涨速减半
+ * - unemployed（失业）：每年消耗积蓄 -15%（逼近 0，模拟存款流失）
+ * - selfEmployed（创业/自由职业）：高方差 ±20% 波动，长期微涨
+ * - retired（退休）：退休金每年 +3%（抗通胀）
+ * - student/monk/deceased：薪资不变
+ *
+ * 返回一个简短描述（可选，用于历史/日志展示）。
+ */
+export function applyYearlySalary(s: GameState, rng: () => number): string | null {
+  const SAL = salaryConfig; // 见文件末 import
+  switch (s.employment) {
+    case 'employed': {
+      // 35 岁后涨速打折
+      const mult = s.age > SAL.RAISE.seniorAgeCutoff ? SAL.RAISE.seniorMultiplier : 1;
+      // 先判晋升（互斥），再判普调
+      if (rng() < SAL.RAISE.promotionProb) {
+        const raise = Math.round(s.salary * SAL.RAISE.promotionRate * mult);
+        s.salary += raise;
+        return raise > 0 ? `晋升！月薪 +${raise}` : null;
+      }
+      if (rng() < SAL.RAISE.normalProb) {
+        const raise = Math.round(s.salary * SAL.RAISE.normalRate * mult);
+        s.salary += raise;
+        return raise > 0 ? `普调 +${raise}` : null;
+      }
+      return null; // 这年没涨
+    }
+    case 'unemployed': {
+      // 消耗积蓄：salary *= (1 - drain)，逼近 0
+      const before = s.salary;
+      s.salary = Math.round(before * (1 - SAL.UNEMPLOYED_DRAIN));
+      const loss = before - s.salary;
+      return loss > 0 ? `失业积蓄 -${loss}` : null;
+    }
+    case 'selfEmployed': {
+      // ±volatility 波动 + 长期 trend 微涨
+      const shock = (rng() * 2 - 1) * SAL.SELF.volatility; // [-vol, +vol]
+      const trend = SAL.SELF.trend;
+      const delta = Math.round(s.salary * (trend + shock));
+      s.salary = Math.max(0, s.salary + delta);
+      return delta !== 0 ? `生意波动 ${delta > 0 ? '+' : ''}${delta}` : null;
+    }
+    case 'retired': {
+      // 退休金随通胀微涨
+      const raise = Math.round(s.salary * SAL.PENSION_GROWTH);
+      s.salary += raise;
+      return raise > 0 ? `退休金 +${raise}` : null;
+    }
+    default:
+      // student / monk / deceased：薪资不变
+      return null;
+  }
+}
+
+// ============ 结局积分 ============
+
+/** 给某一线加分（上限 SCORE_MAX，防膨胀）。 */
+export function addScore(s: GameState, track: EndingTrack, delta: number): void {
+  s.scores[track] = Math.max(0, Math.min(SCORE_MAX, s.scores[track] + delta));
+}
+
+/** 五线总分。 */
+export function totalScore(s: GameState): number {
+  return s.scores.career + s.scores.family + s.scores.freedom + s.scores.fame + s.scores.spirit;
+}
+
+/** 找出分数最高的线（并列取声明顺序靠前的）。 */
+export function topTrack(s: GameState): EndingTrack {
+  const entries: [EndingTrack, number][] = [
+    ['career', s.scores.career],
+    ['family', s.scores.family],
+    ['freedom', s.scores.freedom],
+    ['fame', s.scores.fame],
+    ['spirit', s.scores.spirit],
+  ];
+  return entries.reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0];
+}

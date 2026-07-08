@@ -1,16 +1,17 @@
 // src/content/thresholds/crisis-low-happiness.ts
 import type { GameEvent } from '../../engine/types';
-import { THRESHOLDS } from '../../engine/constants';
+import { addScore, adjustSalary, worsenHealth, addDisease } from '../../engine/status';
 
+// 阈值事件：抑郁触发（disease=depression 时触发）
 export const crisisLowHappiness: GameEvent = {
   id: 'threshold_low_happiness',
-  stage: 'career', // any non-childhood stage works; we filter via trigger.requires
-  ageRange: [20, 75],
+  stage: 'special',
+  ageRange: [20, 80],
   once: true,
   trigger: {
-    baseWeight: 0, // 不参与常规抽取 —— 由 loop 检测阈值触发
+    baseWeight: 0,
     requires: [
-      { attrLt: { 快乐: THRESHOLDS.lowHappiness } }, // 20，constants 里
+      { disease: 'depression' },
       { notFlag: 'crisis_low_happiness_fired' },
     ],
   },
@@ -22,8 +23,9 @@ export const crisisLowHappiness: GameEvent = {
         weight: 100,
         condition: { all: [] },
         apply: (s) => {
-          s.attrs.快乐 += 15;
-          s.attrs.财富 -= 5;
+          addScore(s, 'family', 10);
+          adjustSalary(s, -1000);
+          s.diseases.delete('depression');
           s.flags.add('crisis_low_happiness_fired');
         },
         result: '朋友拉你出去喝酒吐槽，你好受多了。',
@@ -35,8 +37,7 @@ export const crisisLowHappiness: GameEvent = {
         weight: 100,
         condition: { all: [] },
         apply: (s) => {
-          s.attrs.快乐 -= 5;
-          s.attrs.体质 -= 10;
+          worsenHealth(s);
           s.flags.add('crisis_low_happiness_fired');
         },
         result: '你越喝越颓废。',
@@ -48,23 +49,23 @@ export const crisisLowHappiness: GameEvent = {
         weight: 100,
         condition: { all: [] },
         apply: (s) => {
-          s.attrs.快乐 -= 5;
-          s.attrs.财富 += 15;
+          adjustSalary(s, 3000);
           s.flags.add('crisis_low_happiness_fired');
         },
         result: '你把痛苦转化为产出，老板很高兴。',
       }],
     },
     {
-      label: '（需要智力 60）顿悟人生',
-      hint: '需要 智力≥60',
-      visibleWhen: { attrGte: { 智力: 60 } },
+      label: '（精神线 ≥ 30）顿悟人生',
+      hint: '需要 精神线 ≥30',
+      visibleWhen: { scoreGte: { spirit: 30 } },
       outcomes: [{
         weight: 100,
-        condition: { attrGte: { 智力: 60 } },
+        condition: { scoreGte: { spirit: 30 } },
         apply: (s) => {
           s.flags.add('choice_midlife_monk_early');
-          s.attrs.快乐 += 30;
+          addScore(s, 'spirit', 20);
+          s.diseases.delete('depression');
           s.flags.add('crisis_low_happiness_fired');
         },
         nextEvent: 'ending_monk',

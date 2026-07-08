@@ -1,5 +1,6 @@
 // src/content/chains/overwork-death.ts
 import type { GameEvent } from '../../engine/types';
+import { addScore, adjustSalary, transitionEmployment, addDisease } from '../../engine/status';
 
 export const overworkCritical: GameEvent = {
   id: 'career_overwork_critical',
@@ -8,7 +9,7 @@ export const overworkCritical: GameEvent = {
   once: true,
   trigger: {
     baseWeight: 10,
-    requires: [{ flag: 'milestone_has_job' }],
+    requires: [{ employment: 'employed' }],
   },
   text: '老板让你通宵赶项目。你已经连续加班三周了，心跳有点奇怪。',
   choices: [
@@ -17,18 +18,13 @@ export const overworkCritical: GameEvent = {
       outcomes: [
         {
           weight: 50,
-          condition: { attrGte: { 体质: 30 } },
-          apply: (s) => {
-            s.attrs.财富 += 20;
-            s.skills.硬 += 5;
-            s.attrs.体质 -= 5;
-            s.flags.add('achievement_first_promotion');
-          },
+          condition: { healthIn: ['healthy', 'subhealthy'] },
+          apply: (s) => { adjustSalary(s, 5000); addScore(s, 'career', 15); addDisease(s, 'overwork_syndrome'); s.flags.add('achievement_first_promotion'); },
           result: '项目成功，你被提拔为组长。同事都说你是工作狂。',
         },
         {
           weight: 30,
-          condition: { attrLt: { 体质: 30 } },
+          condition: { healthIn: ['mild', 'severe', 'critical'] },
           apply: (s) => { s.flags.add('twist_sudden_death_reborn'); },
           nextEvent: 'ending_reborn_as_gaokao',
           result: '你眼前一黑……再睁眼，竟回到了高考考场，手里还握着笔。',
@@ -36,7 +32,7 @@ export const overworkCritical: GameEvent = {
         {
           weight: 10,
           condition: { all: [
-            { attrLt: { 体质: 30 } },
+            { healthIn: ['mild', 'severe', 'critical'] },
             { flag: 'foreshadow_dream_gaokao' },
           ]},
           apply: (s) => { s.flags.add('twist_underworld_hr'); },
@@ -50,10 +46,7 @@ export const overworkCritical: GameEvent = {
       outcomes: [{
         weight: 100,
         condition: { all: [] },
-        apply: (s) => {
-          s.attrs.快乐 -= 5;
-          s.skills.摸 += 3;
-        },
+        apply: (s) => { addScore(s, 'freedom', 3); },
         result: '你在工位上玩了一晚上手机。老板第二天没发现。',
       }],
     },
@@ -62,21 +55,14 @@ export const overworkCritical: GameEvent = {
       outcomes: [
         {
           weight: 60,
-          condition: { skillGte: { 软: 30 } },
-          apply: (s) => {
-            s.attrs.快乐 += 10;
-            s.flags.add('choice_refused_overwork');
-          },
+          condition: { flag: 'skill_debate' },
+          apply: (s) => { addScore(s, 'freedom', 10); s.flags.add('choice_refused_overwork'); },
           result: '你成功说服了老板，从此团队再也没人敢让你无偿加班。',
         },
         {
           weight: 40,
-          condition: { skillLt: { 软: 30 } },
-          apply: (s) => {
-            s.attrs.快乐 -= 15;
-            s.flags.add('milestone_fired');
-            s.flags.delete('milestone_has_job');
-          },
+          condition: { all: [] },
+          apply: (s) => { transitionEmployment(s, 'unemployed'); addScore(s, 'freedom', 5); s.flags.add('milestone_fired'); },
           result: '你被开除了。但奇怪的是，你感到久违的轻松。',
         },
       ],
@@ -88,10 +74,7 @@ export const overworkCritical: GameEvent = {
       outcomes: [{
         weight: 100,
         condition: { flag: 'ng_plus_memory' },
-        apply: (s) => {
-          s.attrs.快乐 += 5;
-          s.flags.add('choice_used_memory');
-        },
+        apply: (s) => { addScore(s, 'career', 5); s.flags.add('choice_used_memory'); },
         result: '你想起上辈子就是这里出的事，这次你巧妙避开。',
       }],
     },

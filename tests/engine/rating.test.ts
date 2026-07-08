@@ -4,34 +4,34 @@ import { calcRating } from '../../src/engine/rating';
 import { makeState } from '../fixtures';
 
 describe('calcRating', () => {
-  // 注：brief Step 5 原期望 'S'，但 brief Step 7 的公式 + 占位权重 (60/15/15/10)
-  // 对此输入算出 71.3 分 → A。S 阈值 85 在当前占位权重下无法达到。
-  // 权威公式（implementation）保持不变；此处按公式真实输出断言。
-  // 调整权重属 playtest 阶段决策（见 CLAUDE.md）。
-  it('returns A for high stats and long life (spec formula caps at A for these inputs)', () => {
+  // 新评分公式：scoreAvg(五线平均)*0.6 + lifespan*0.2 + achievement*0.1 + twist*0.1
+  // 占位权重，阈值 S80/A65/B50/C35，playtest 阶段调整。
+  it('returns high rating for high scores + long life + achievements', () => {
     const s = makeState({
       age: 80,
-      attrs: { 智力: 90, 魅力: 90, 体质: 90, 运气: 90, 财富: 90, 快乐: 90 },
-      skills: { 硬: 90, 软: 90, 摸: 90 },
+      scores: { career: 90, family: 80, freedom: 70, fame: 60, spirit: 50 },
     });
     s.flags.add('achievement_x'); s.flags.add('achievement_y');
     s.flags.add('twist_x');
-    expect(calcRating(s)).toBe('A');
+    // scoreAvg=70, lifespan≈92.8, achievement=10, twist=10
+    // score = 70*0.6 + 92.8*0.2 + 10*0.1 + 10*0.1 = 42+18.6+1+1 = 62.6 → B
+    expect(calcRating(s)).toBe('B');
   });
 
   it('returns D for low everything', () => {
     const s = makeState({
       age: 30,
-      attrs: { 智力: 20, 魅力: 20, 体质: 20, 运气: 20, 财富: 20, 快乐: 20 },
-      skills: { 硬: 20, 软: 20, 摸: 20 },
+      scores: { career: 5, family: 5, freedom: 5, fame: 5, spirit: 5 },
     });
+    // scoreAvg=5, lifespan≈34.1, achievement=0, twist=0
+    // score = 5*0.6 + 34.1*0.2 + 0 + 0 = 3+6.8 = 9.8 → D
     expect(calcRating(s)).toBe('D');
   });
 
-  // 注：brief Step 5 原期望 ['B','C']，但默认 makeState（attrs=50, skills=30）+ age=60
-  // 在权威公式下得 37.06 分 → D。判定逻辑本身已被其它用例覆盖（高→A，低→D）。
-  it('returns D for default makeState at age 60 (spec formula yields 37.06)', () => {
+  it('returns mid rating for default makeState at age 60', () => {
     const s = makeState({ age: 60 });
+    // scoreAvg=0, lifespan≈69.4, achievement=0, twist=0
+    // score = 0 + 69.4*0.2 + 0 + 0 = 13.9 → D
     expect(calcRating(s)).toBe('D');
   });
 });

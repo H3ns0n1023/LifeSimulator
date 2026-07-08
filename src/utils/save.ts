@@ -12,12 +12,13 @@ export interface SaveData {
 }
 
 export function saveGame(data: SaveData): void {
-  // Set 不能直接 JSON，转 array
+  // Set 不能直接 JSON，转 array（flags 与 diseases 都是 Set）
   const serializable = {
     ...data,
     state: {
       ...data.state,
       flags: [...data.state.flags],
+      diseases: [...data.state.diseases],
     },
   };
   localStorage.setItem(SAVE_KEY, JSON.stringify(serializable));
@@ -33,6 +34,7 @@ export function loadGame(): SaveData | null {
       state: {
         ...parsed.state,
         flags: new Set<string>(parsed.state.flags ?? []),
+        diseases: new Set<string>(parsed.state.diseases ?? []),
       },
     };
   } catch {

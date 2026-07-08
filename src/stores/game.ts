@@ -2,13 +2,12 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { GameState } from '../engine/types';
-import { STAGE_OF_AGE } from '../engine/constants';
+import { STAGE_OF_AGE, BASE_LIFESPAN, LIFESPAN_VARIANCE, CARRYOVER_BONUS } from '../engine/constants';
 import { loadGame, saveGame, clearSave, hasSave, type SaveData } from '../utils/save';
 import { resolveChoice } from '../engine/outcome';
 import { selectEventsForYear, applyYearlyTick, applyOutcomeToState, checkDeath, detectThresholdEvents } from '../engine/loop';
 import { resolveEnding } from '../engine/ending';
-import { mulberry32 } from '../engine/rng';
-import { BASE_LIFESPAN, LIFESPAN_VARIANCE } from '../engine/constants';
+import { mulberry32, randomInt } from '../engine/rng';
 import { ALL_EVENTS, ALL_ENDINGS, findEvent } from '../content/_registry';
 import type { Outcome, GameEvent } from '../engine/types';
 
@@ -30,28 +29,28 @@ export const useGameStore = defineStore('game', () => {
   const hasOngoingGame = computed(() => state.value !== null && view.value === 'game');
 
   function newGame(seed: number, carryover?: GameState['meta']['carryover']) {
-    const attrs = {
-      智力: 30 + Math.floor(seedRandom(seed, 1) * 21),
-      魅力: 30 + Math.floor(seedRandom(seed, 2) * 21),
-      体质: 30 + Math.floor(seedRandom(seed, 3) * 21),
-      运气: 30 + Math.floor(seedRandom(seed, 4) * 21),
-      财富: 30 + Math.floor(seedRandom(seed, 5) * 21),
-      快乐: 30 + Math.floor(seedRandom(seed, 6) * 21),
-    };
+    // 起手状态：童年、在校、单身、健康、月薪 0、五线积分 0
     state.value = {
       age: 1,
       stage: 'childhood',
-      attrs,
-      skills: { 硬: 0, 软: 0, 摸: 0 },
+      salary: 0,
+      health: 'healthy',
+      diseases: new Set(),
+      employment: 'student',
+      marriage: 'single',
+      scores: { career: 0, family: 0, freedom: 0, fame: 0, spirit: 0 },
       flags: new Set(),
       history: [],
       meta: { seed, playthrough: totalPlaythroughs.value + 1, carryover },
     };
-    // 应用 NG+ 继承
-    if (carryover === 'intelligence') state.value.attrs.智力 += 15;
-    if (carryover === 'soft') state.value.skills.软 += 15;
-    if (carryover === 'slacker') state.value.skills.摸 += 15;
-    if (carryover === 'memory') state.value.flags.add('ng_plus_memory');
+    // 应用 NG+ 继承（四类语义：career/family/freedom 加对应线积分，memory 解锁隐藏选项）
+    if (carryover === 'career' || carryover === 'family' || carryover === 'freedom') {
+      const bonus = CARRYOVER_BONUS[carryover];
+      state.value.scores[bonus.track] += bonus.score;
+    }
+    if (carryover === 'memory') {
+      state.value.flags.add('ng_plus_memory');
+    }
     view.value = 'game';
     currentEventIds.value = [];
     eventQueueIndex.value = 0;
@@ -150,8 +149,11 @@ export const useGameStore = defineStore('game', () => {
 
   function advanceYear() {
     if (!state.value) return;
-    applyYearlyTick(state.value);
-    const lifespan = BASE_LIFESPAN + (((state.value.meta.seed % 31) - 15) % LIFESPAN_VARIANCE);
+    // 用种子派生本年 rng（health 衰减也用它，保证可复现）
+    const yearRng = mulberry32(state.value.meta.seed + state.value.age * 7919 + 1);
+    applyYearlyTick(state.value, yearRng);
+    // 寿命 = 基础寿命 ± 波动（种子派生，每局固定）
+    const lifespan = BASE_LIFESPAN + randomInt(mulberry32(state.value.meta.seed + 999), -LIFESPAN_VARIANCE, LIFESPAN_VARIANCE);
     if (checkDeath(state.value, lifespan)) {
       finalizeEnding();
       return;
@@ -176,11 +178,3 @@ export const useGameStore = defineStore('game', () => {
     startYear, selectChoice, advanceYear,
   };
 });
-
-function seedRandom(seed: number, n: number): number {
-  // 简单确定性 hash，给 newGame 起手属性用
-  let x = seed + n * 2654435761;
-  x = Math.imul(x ^ (x >>> 15), 2246822507);
-  x = Math.imul(x ^ (x >>> 13), 3266489909);
-  return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
-}

@@ -1,5 +1,6 @@
 // src/content/school/secret-reading.ts
 import type { GameEvent } from '../../engine/types';
+import { addScore } from '../../engine/status';
 
 export const secretReading: GameEvent = {
   id: 'foreshadow_writer_dream',
@@ -14,7 +15,7 @@ export const secretReading: GameEvent = {
       outcomes: [{
         weight: 100,
         condition: { all: [] },
-        apply: (s) => { s.flags.add('foreshadow_writer_dream'); s.attrs.智力 += 2; },
+        apply: (s) => { s.flags.add('foreshadow_writer_dream'); addScore(s, 'fame', 3); addScore(s, 'spirit', 3); },
         result: '也许有一天，你也能写出让人入迷的故事。',
       }],
     },
@@ -23,7 +24,7 @@ export const secretReading: GameEvent = {
       outcomes: [{
         weight: 100,
         condition: { all: [] },
-        apply: (s) => { s.attrs.快乐 -= 3; },
+        apply: (s) => { addScore(s, 'freedom', -3); },
         result: '你压抑了自己的爱好。',
       }],
     },

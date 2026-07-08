@@ -8,9 +8,10 @@ describe('save/load', () => {
     localStorage.clear();
   });
 
-  it('round-trips a save with Set flags', () => {
+  it('round-trips a save with Set flags and diseases', () => {
     const s = makeState();
     s.flags.add('twist_x');
+    s.diseases.add('hypertension');
     saveGame({
       version: '1', state: s, unlockedEndings: ['ending_a'], totalPlaythroughs: 2,
     });
@@ -18,6 +19,8 @@ describe('save/load', () => {
     expect(loaded).not.toBeNull();
     expect(loaded!.state.flags.has('twist_x')).toBe(true);
     expect(loaded!.state.flags instanceof Set).toBe(true);
+    expect(loaded!.state.diseases.has('hypertension')).toBe(true);
+    expect(loaded!.state.diseases instanceof Set).toBe(true);
     expect(loaded!.unlockedEndings).toEqual(['ending_a']);
   });
 

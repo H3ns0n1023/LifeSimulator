@@ -6,7 +6,7 @@ import type { Ending } from '../../src/engine/types';
 
 const endings: Ending[] = [
   { id: 'default', priority: 0, condition: () => true, title: '平凡', desc: () => '', rating: () => 'C' },
-  { id: 'rich', priority: 50, condition: (s) => s.attrs.财富 >= 85, title: '富豪', desc: () => '', rating: () => 'S' },
+  { id: 'rich', priority: 50, condition: (s) => s.salary >= 50000, title: '高薪', desc: () => '', rating: () => 'S' },
   { id: 'twist', priority: 100, condition: (s) => s.flags.has('twist_x'), title: '反转', desc: () => '', rating: () => 'B' },
 ];
 
@@ -18,7 +18,7 @@ describe('resolveEnding', () => {
   });
 
   it('falls back to lower priority when higher does not match', () => {
-    const s = makeState({ attrs: { 智力: 50, 魅力: 50, 体质: 50, 运气: 50, 财富: 90, 快乐: 50 } });
+    const s = makeState({ salary: 60000 });
     expect(resolveEnding(endings, s).id).toBe('rich');
   });
 

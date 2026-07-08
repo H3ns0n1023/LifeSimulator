@@ -2,12 +2,21 @@
 import type { GameState, GameEvent } from '../src/engine/types';
 import { mulberry32 } from '../src/engine/rng';
 
+/**
+ * 造一个测试用 GameState。
+ * 默认是个"职场中期、健康、单身、有工作"的状态，便于测引擎逻辑。
+ * 真实游戏起手 age=1/student，见 stores/game.ts 的 newGame。
+ */
 export function makeState(overrides: Partial<GameState> = {}): GameState {
   return {
     age: 25,
     stage: 'career',
-    attrs: { 智力: 50, 魅力: 50, 体质: 50, 运气: 50, 财富: 50, 快乐: 50 },
-    skills: { 硬: 30, 软: 30, 摸: 30 },
+    salary: 8000,
+    health: 'healthy',
+    diseases: new Set<string>(),
+    employment: 'employed',
+    marriage: 'single',
+    scores: { career: 0, family: 0, freedom: 0, fame: 0, spirit: 0 },
     flags: new Set<string>(),
     history: [],
     meta: { seed: 12345, playthrough: 1 },
@@ -28,8 +37,10 @@ export const sampleEvent: GameEvent = {
     {
       label: '选项 A',
       outcomes: [
-        { weight: 50, condition: { attrGte: { 体质: 30 } }, apply: () => {}, result: 'A 常规' },
-        { weight: 50, condition: { attrLt: { 体质: 30 } }, apply: () => {}, result: 'A 反转' },
+        // 常规层：月薪 >= 5000 触发
+        { weight: 50, condition: { salaryGte: 5000 }, apply: () => {}, result: 'A 常规' },
+        // 反转层：月薪 < 5000 触发
+        { weight: 50, condition: { salaryLt: 5000 }, apply: () => {}, result: 'A 反转' },
       ],
     },
     { label: '选项 B', outcomes: [

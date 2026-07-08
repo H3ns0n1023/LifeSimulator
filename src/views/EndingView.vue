@@ -3,17 +3,20 @@ import { computed } from 'vue';
 import { useGameStore } from '../stores/game';
 import { findEnding } from '../content/_registry';
 import { calcRating } from '../engine/rating';
+import { topTrack } from '../engine/status';
+import { TRACK_LABEL } from '../engine/constants';
 import type { CarryingKind } from '../engine/types';
 
 const store = useGameStore();
 
 const ending = computed(() => store.currentEndingId ? findEnding(store.currentEndingId) : null);
 const rating = computed(() => store.state ? calcRating(store.state) : 'D');
+const mainTrack = computed(() => store.state ? TRACK_LABEL[topTrack(store.state)] : '');
 
 const carryoverOptions: Array<{ kind: CarryingKind; label: string; desc: string }> = [
-  { kind: 'intelligence', label: '智力 +15', desc: '起手属性优势' },
-  { kind: 'soft', label: '软技能 +15', desc: '起手属性优势' },
-  { kind: 'slacker', label: '摸鱼 +15', desc: '起手属性优势' },
+  { kind: 'career', label: '事业线 +20', desc: '前世的事业积累，新人生起手事业分领先' },
+  { kind: 'family', label: '家庭线 +20', desc: '前世的人脉积累，新人生起手家庭分领先' },
+  { kind: 'freedom', label: '自由线 +20', desc: '前世的自由心得，新人生起手自由分领先' },
   { kind: 'memory', label: '前世记忆', desc: '解锁部分事件的额外选项，罕见反转概率 +5%' },
 ];
 
@@ -34,6 +37,7 @@ function backToStart() {
     <div class="meta">
       <span>享年 {{ store.state.age }}</span>
       <span>第 {{ store.state.meta.playthrough }} 周目</span>
+      <span v-if="mainTrack">主修：{{ mainTrack }}线</span>
     </div>
 
     <section class="ngp">
