@@ -49,10 +49,23 @@ export const schoolEvents: GameEvent[] = [
         label: '咬牙拼命刷题',
         outcomes: [
           {
+            weight: 70,
+            condition: { all: [{ flag: 'milestone_prodigy_class' }, { flag: 'milestone_rich_family' }] },
+            apply: (s) => { addScore(s, 'career', 12); },
+            result: '神童底子 + 家里请得起名师一对一，你的成绩火箭般蹿升。',
+          },
+          {
             weight: 60,
             condition: { flag: 'milestone_prodigy_class' },
             apply: (s) => { addScore(s, 'career', 10); },
             result: '你的成绩明显进步。神童的底子毕竟还在。',
+          },
+          {
+            // 贫困家境：拼命但更苦，失眠更重
+            weight: 50,
+            condition: { all: [{ notFlag: 'milestone_prodigy_class' }, { flag: 'milestone_poor_family' }] },
+            apply: (s) => { addScore(s, 'career', 6); addDisease(s, 'insomnia'); worsenHealth(s); },
+            result: '你借来的旧教辅翻烂了，台灯下熬到凌晨。成绩涨了一点，但身体有点扛不住。',
           },
           {
             weight: 40,
@@ -65,6 +78,11 @@ export const schoolEvents: GameEvent[] = [
       {
         label: '佛系对待，劳逸结合',
         outcomes: [{
+          // 有钢琴等文艺特长的孩子，佛系得更优雅，fame 加分
+          weight: 100, condition: { flag: 'skill_piano' },
+          apply: (s) => { addScore(s, 'freedom', 5); addScore(s, 'career', 3); addScore(s, 'fame', 5); },
+          result: '你弹着钢琴调节心情，反而成了班里的"文艺标杆"。心态出奇地好。',
+        },{
           weight: 100, condition: { all: [] },
           apply: (s) => { addScore(s, 'freedom', 5); addScore(s, 'career', 3); },
           result: '你按自己的节奏走，心态出奇地好。',

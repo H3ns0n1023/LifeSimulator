@@ -27,7 +27,7 @@ export const childhoodEvents: GameEvent[] = [
     }]}],
   },
 
-  // 2. 音乐天赋 — 名望线
+  // 2. 音乐天赋 — 名望线（钢琴后续呼应 school 文艺、retirement 书法）
   {
     id: 'childhood_talent_music',
     stage: 'childhood', ageRange: [4, 6], once: true,
@@ -35,8 +35,9 @@ export const childhoodEvents: GameEvent[] = [
     text: '你听到邻居弹钢琴，眼睛一亮。',
     choices: [
       { label: '央求父母学钢琴', outcomes: [
-        { weight: 100, condition: { salaryGte: 5000 }, apply: (s) => { addScore(s, 'fame', 8); s.flags.add('skill_piano'); }, result: '你开始学钢琴，气质逐渐显现。' },
-        { weight: 100, condition: { salaryLt: 5000 }, apply: () => {}, result: '家里负担不起，你只能趴在窗外偷偷听。' },
+        // 殷实家境才能学（童年 salary 恒为 0，旧逻辑永远学不成 —— 修此 bug）
+        { weight: 100, condition: { flag: 'milestone_rich_family' }, apply: (s) => { addScore(s, 'fame', 8); s.flags.add('skill_piano'); }, result: '家里买得起琴，你开始学钢琴，气质逐渐显现。' },
+        { weight: 100, condition: { notFlag: 'milestone_rich_family' }, apply: (s) => { addScore(s, 'spirit', 3); }, result: '家里负担不起。你趴在窗外偷偷听，把旋律记在心里。' },
       ]},
       { label: '算了', outcomes: [{
         weight: 100, condition: { all: [] },

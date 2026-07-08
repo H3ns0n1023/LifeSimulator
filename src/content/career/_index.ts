@@ -200,6 +200,11 @@ export const careerEvents: GameEvent[] = [
       {
         label: '年轻扛得住，下次再说',
         outcomes: [{
+          // 校队出身（achievement_school_team）运动底子好，扛得住，不生病
+          weight: 100, condition: { flag: 'achievement_school_team' },
+          apply: (s) => { s.flags.add('choice_health_ignore'); },
+          result: '你把报告塞进抽屉。当年校队的底子还在，烧烤啤酒照旧，居然还真没啥事。',
+        },{
           weight: 100, condition: { all: [] },
           apply: (s) => { addDisease(s, 'fatty_liver'); addDisease(s, 'hypertension'); s.flags.add('choice_health_ignore'); },
           result: '你把报告塞进抽屉。烧烤啤酒照旧——但脂肪肝和高血压也跟着来了。',
@@ -459,6 +464,11 @@ export const careerEvents: GameEvent[] = [
       {
         label: '主动认识每个人，建立人脉',
         outcomes: [{
+          // 学生干部出身（milestone_class_monitor）天生会社交，加分翻倍
+          weight: 100, condition: { flag: 'milestone_class_monitor' },
+          apply: (s) => { addScore(s, 'career', 8); addScore(s, 'family', 5); s.flags.add('skill_office_social'); s.flags.add('milestone_first_day'); },
+          result: '当年当班长练就的本事全用上了。一周后全组都喊你"X 哥/X 姐"，你成了气氛组。',
+        },{
           weight: 100, condition: { all: [] },
           apply: (s) => { addScore(s, 'career', 5); addScore(s, 'family', 3); s.flags.add('skill_office_social'); s.flags.add('milestone_first_day'); },
           result: '你记住了全组 20 个人的名字和喜好。月底聚餐你成了气氛组。',

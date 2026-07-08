@@ -81,9 +81,12 @@ export const collegeEvents: GameEvent[] = [
         label: '主动搭讪',
         outcomes: [
           {
-            weight: 60, condition: { any: [{ flag: 'skill_debate' }, { flag: 'choice_charm_practice' }] },
+            // 中学有暗恋经验 + 童年有朋友 → 社交达人，高成功率
+            weight: 80, condition: { any: [{ flag: 'choice_first_crush' }, { flag: 'milestone_first_friend' }, { flag: 'skill_debate' }, { flag: 'choice_charm_practice' }] },
             apply: (s) => { addScore(s, 'family', 10); s.flags.add('milestone_first_love'); },
-            result: '你们开始一起上自习、一起吃食堂。大学有了甜味。',
+            result: (s) => s.flags.has('choice_first_crush')
+              ? '你想起中学那次没敢递出去的纸条——这次，你不会再错过了。你们在一起了。'
+              : '你们开始一起上自习、一起吃食堂。大学有了甜味。',
           },
           {
             weight: 40, condition: { all: [] },
@@ -118,11 +121,15 @@ export const collegeEvents: GameEvent[] = [
           apply: (s) => {
             transitionEmployment(s, 'employed');
             s.flags.add('milestone_first_job_tech');
-            adjustSalary(s, 15000);
+            // 有实习经验 + 考研学历，起薪更高
+            const base = 15000;
+            const internBonus = s.flags.has('skill_intern') ? 3000 : 0;
+            const gradBonus = s.flags.has('milestone_grad_school') ? 4000 : 0;
+            adjustSalary(s, base + internBonus + gradBonus);
             addScore(s, 'career', 10);
             worsenHealth(s); // 996 伤身
           },
-          result: '你拿到了大厂 offer，月薪一万五。入职第一天就开始 996。',
+          result: (s) => `你拿到了大厂 offer，月薪${s.flags.has('milestone_grad_school') ? '两万三' : (s.flags.has('skill_intern') ? '一万八' : '一万五')}。${s.flags.has('skill_intern') ? '实习经历让你脱颖而出。' : ''}入职第一天就开始 996。`,
         }],
       },
       {
@@ -131,10 +138,11 @@ export const collegeEvents: GameEvent[] = [
           weight: 100, condition: { all: [] },
           apply: (s) => {
             transitionEmployment(s, 'employed');
-            adjustSalary(s, 6000);
+            const gradBonus = s.flags.has('milestone_grad_school') ? 2000 : 0;
+            adjustSalary(s, 6000 + gradBonus);
             addScore(s, 'freedom', 5);
           },
-          result: '你进了一家小公司，月薪六千，朝九晚五。',
+          result: (s) => `你进了一家小公司，月薪${s.flags.has('milestone_grad_school') ? '八千' : '六千'}，朝九晚五。`,
         }],
       },
       {
