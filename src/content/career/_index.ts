@@ -319,6 +319,12 @@ export const careerEvents: GameEvent[] = [
         label: '冲刺管理层',
         outcomes: [
           {
+            // callback：少年班出身的"天才"，35 岁焦虑更重（milestone_prodigy_class）
+            weight: 60, condition: { all: [{ scoreGte: { career: 40 } }, { flag: 'milestone_prodigy_class' }] },
+            apply: (s) => { adjustSalary(s, 8000); addScore(s, 'career', 18); addScore(s, 'fame', 8); s.flags.add('achievement_manager'); worsenHealth(s); },
+            result: '「12 岁进少年班的人，怎能 35 岁还是个兵？」你咬着牙冲上了总监。可深夜失眠时你问自己：到底是在向谁证明？',
+          },
+          {
             weight: 50, condition: { scoreGte: { career: 40 } },
             apply: (s) => { adjustSalary(s, 5000); addScore(s, 'career', 15); s.flags.add('achievement_manager'); },
             result: '你如愿升上总监，手下管着十来号人。',
@@ -416,18 +422,29 @@ export const careerEvents: GameEvent[] = [
         label: (s) => s.flags.has('choice_back_hometown')
           ? '日夜守在病床前'
           : (s.employment === 'employed' ? '立刻请假回家陪护' : '放下手头的事赶回老家'),
-        outcomes: [{
-          weight: 100, condition: { all: [] },
-          apply: (s) => {
-            addScore(s, 'family', 12);
-            // 已回老家不扣"路费/误工"；异地才扣
-            if (!s.flags.has('choice_back_hometown')) adjustSavings(s, -3000);
-            s.flags.add('choice_filial_child');
+        outcomes: [
+          {
+            // callback：留守儿童当年被父母"留下"，如今反过来陪伴——报恩式呼应
+            weight: 200, condition: { flag: 'milestone_left_behind' },
+            apply: (s) => {
+              addScore(s, 'family', 18);  // 比普通陪护加分更高（情感浓度大）
+              if (!s.flags.has('choice_back_hometown')) adjustSavings(s, -3000);
+              s.flags.add('choice_filial_child');
+            },
+            result: '你想起小时候火车站月台上，妈妈红着眼圈塞给你的旧书包。那年她"去外地打工"，如今你守在她病床前——这一回，换你不走了。',
           },
-          result: (s) => s.flags.has('choice_back_hometown')
-            ? '你守了妈妈七天七夜。邻床病友都夸：「这孩子真孝顺，一直守着。」你心想：当年回老家，值了。'
-            : '你在病床前守了七天七夜。妈妈出院那天，握着你的手不松开。',
-        }],
+          {
+            weight: 100, condition: { all: [] },
+            apply: (s) => {
+              addScore(s, 'family', 12);
+              if (!s.flags.has('choice_back_hometown')) adjustSavings(s, -3000);
+              s.flags.add('choice_filial_child');
+            },
+            result: (s) => s.flags.has('choice_back_hometown')
+              ? '你守了妈妈七天七夜。邻床病友都夸：「这孩子真孝顺，一直守着。」你心想：当年回老家，值了。'
+              : '你在病床前守了七天七夜。妈妈出院那天，握着你的手不松开。',
+          },
+        ],
       },
       {
         label: '汇钱回去，请护工照顾',
@@ -511,11 +528,19 @@ export const careerEvents: GameEvent[] = [
     choices: [
       {
         label: '通宵修复，写万字复盘报告',
-        outcomes: [{
-          weight: 100, condition: { all: [] },
-          apply: (s) => { addScore(s, 'career', 8); addDisease(s, 'insomnia'); s.flags.add('choice_own_up_mistake'); },
-          result: '事故复盘会上你主动认领责任。组长黑着脸，但散会后拍了拍你的肩：「下次小心。」',
-        }],
+        outcomes: [
+          {
+            // callback：留守儿童早熟，扛事能力更强（choice_independent_early）
+            weight: 200, condition: { flag: 'choice_independent_early' },
+            apply: (s) => { addScore(s, 'career', 12); s.flags.add('choice_own_up_mistake'); },
+            result: '你想起小时候独自面对空荡荡的家，没人帮你扛。这一次也一样——你一个人通宵修完，第二天照常开会。组长说：「你这心理素质，不像新人。」',
+          },
+          {
+            weight: 100, condition: { all: [] },
+            apply: (s) => { addScore(s, 'career', 8); addDisease(s, 'insomnia'); s.flags.add('choice_own_up_mistake'); },
+            result: '事故复盘会上你主动认领责任。组长黑着脸，但散会后拍了拍你的肩：「下次小心。」',
+          },
+        ],
       },
       {
         label: '甩锅给实习生',
@@ -883,6 +908,11 @@ export const careerEvents: GameEvent[] = [
           weight: 150, condition: { all: [{ flag: 'choice_brave_kid' }, { flag: 'skill_office_politics' }] },
           apply: (s) => { addScore(s, 'career', 12); addScore(s, 'fame', 10); s.flags.add('choice_fight_pua'); },
           result: (s) => `你录了音、留了聊天记录，毫不犹豫地敲开了总监的门。HR 调查后调走了他。${s.flags.has('choice_brave_kid') ? '你想起五岁那年敢一个人开灯面对黑夜——有些勇敢，是一辈子的事。' : '你成了组里"敢说真话"的人。'}`,
+        },{
+          // callback：大学宿舍敢于摊牌的人，面对 PUA 也敢反抗（choice_roommate_speak）
+          weight: 130, condition: { flag: 'choice_roommate_speak' },
+          apply: (s) => { addScore(s, 'career', 10); addScore(s, 'fame', 8); s.flags.add('choice_fight_pua'); },
+          result: '你想起大学宿舍那次凌晨摊牌——从那以后你就明白：忍让换不来尊重。你带着录音去找了 HR，领导当天就被调走。',
         },{
           weight: 100, condition: { flag: 'skill_office_politics' },
           apply: (s) => { addScore(s, 'career', 8); addScore(s, 'fame', 5); s.flags.add('choice_fight_pua'); },

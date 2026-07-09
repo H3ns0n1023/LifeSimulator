@@ -74,11 +74,19 @@ export const retirementEvents: GameEvent[] = [
     choices: [
       {
         label: '欣然接受，享受天伦之乐',
-        outcomes: [{
-          weight: 100, condition: { all: [] },
-          apply: (s) => { addScore(s, 'family', 15); worsenHealth(s); s.flags.add('achievement_grandchild_bond'); },
-          result: '送他上幼儿园、教他下象棋、被他闹得腰酸背痛——但每个瞬间都值。',
-        }],
+        outcomes: [
+          {
+            // callback：自己童年经历过入园分离焦虑（milestone_kindergarten），更懂孙子的哭闹
+            weight: 200, condition: { flag: 'milestone_kindergarten' },
+            apply: (s) => { addScore(s, 'family', 20); addScore(s, 'spirit', 5); s.flags.add('achievement_grandchild_bond'); },
+            result: '送他上幼儿园那天他抱着你腿大哭。你蹲下来抱住他——就像当年妈妈抱住你一样。你说：「不怕，放学爷爷/奶奶来接你。」你比谁都懂那种分离的怕。',
+          },
+          {
+            weight: 100, condition: { all: [] },
+            apply: (s) => { addScore(s, 'family', 15); worsenHealth(s); s.flags.add('achievement_grandchild_bond'); },
+            result: '送他上幼儿园、教他下象棋、被他闹得腰酸背痛——但每个瞬间都值。',
+          },
+        ],
       },
       {
         label: '委婉拒绝，让儿女自己想办法',
@@ -139,6 +147,12 @@ export const retirementEvents: GameEvent[] = [
         label: '见一面又不会少块肉',
         outcomes: [
           {
+            // callback：少年时勇敢追过初恋的人（choice_first_crush），老了依然敢爱
+            weight: 200, condition: { flag: 'choice_first_crush' },
+            apply: (s) => { transitionMarriage(s, 'married'); addScore(s, 'family', 20); addScore(s, 'spirit', 5); s.flags.add('milestone_late_love'); },
+            result: '一见如故。对方笑起来时，你恍惚看见了十二岁那个夏天，操场边那个红着脸的影子。原来敢爱的人，一辈子都敢。',
+          },
+          {
             weight: 100, condition: { any: [{ flag: 'choice_charm_practice' }, { flag: 'milestone_dance_c' }] },
             apply: (s) => { transitionMarriage(s, 'married'); addScore(s, 'family', 15); s.flags.add('milestone_late_love'); },
             result: '一见如故。原来人生后半程，还能有怦然心动。',
@@ -172,9 +186,21 @@ export const retirementEvents: GameEvent[] = [
         label: '积极治疗，与命运抗争',
         outcomes: [
           {
+            // callback：有弟妹的人，病重时弟妹来照顾（milestone_sibling）
+            weight: 150, condition: { all: [{ flag: 'milestone_sibling' }, { healthIn: ['healthy', 'subhealthy', 'mild'] }] },
+            apply: (s) => { adjustSavings(s, -3000); improveHealth(s); improveHealth(s); addScore(s, 'family', 10); s.flags.add('choice_fight_illness'); },
+            result: '弟弟/妹妹连夜赶来了，守在你床前寸步不离。当年你递给 ta 的那瓶奶，如今变成了 ta 喂你的那口粥。你扛过了这一关。',
+          },
+          {
             weight: 100, condition: { healthIn: ['healthy', 'subhealthy', 'mild'] },
             apply: (s) => { adjustSavings(s, -3000); improveHealth(s); s.flags.add('choice_fight_illness'); },
             result: '化疗很苦，但你挺过来了。出院那天，阳光格外温暖。',
+          },
+          {
+            // callback：有弟妹但病情重，弟妹陪伴走完最后一段
+            weight: 150, condition: { all: [{ flag: 'milestone_sibling' }, { healthIn: ['severe', 'critical'] }] },
+            apply: (s) => { adjustSavings(s, -3000); worsenHealth(s); addScore(s, 'family', 8); s.flags.add('crisis_serious_illness'); },
+            result: '弟弟/妹妹放下了所有事来陪你。你们聊起小时候抢玩具、争宠的旧事，笑着笑着就哭了。',
           },
           {
             weight: 100, condition: { healthIn: ['severe', 'critical'] },
@@ -185,11 +211,21 @@ export const retirementEvents: GameEvent[] = [
       },
       {
         label: '保守治疗，享受剩下的日子',
-        outcomes: [{
-          weight: 100, condition: { all: [] },
-          apply: (s) => { addScore(s, 'spirit', 10); worsenHealth(s); s.flags.add('crisis_serious_illness'); s.flags.add('choice_accept_fate'); },
-          result: '你拒绝了过度治疗。剩下的日子，你想做真正想做的事。',
-        }],
+        outcomes: [
+          {
+            // callback：童年经历过宠物离世的人，更早学会告别（milestone_first_loss / choice_faced_loss）
+            weight: 200, condition: { flag: 'milestone_first_loss' },
+            apply: (s) => { addScore(s, 'spirit', 18); worsenHealth(s); s.flags.add('crisis_serious_illness'); s.flags.add('choice_accept_fate'); },
+            result: (s) => s.flags.has('choice_faced_loss')
+              ? '你想起五岁那年，爸爸陪你在树下埋葬那只橘猫。你早已知道：爱过的东西会离开，但爱本身不会。这一次，你也平静地告别。'
+              : '你想起童年第一次失去心爱之物时的痛。如今你已懂得：死亡不是最可怕的，没好好活过才是。你拒绝了过度治疗。',
+          },
+          {
+            weight: 100, condition: { all: [] },
+            apply: (s) => { addScore(s, 'spirit', 10); worsenHealth(s); s.flags.add('crisis_serious_illness'); s.flags.add('choice_accept_fate'); },
+            result: '你拒绝了过度治疗。剩下的日子，你想做真正想做的事。',
+          },
+        ],
       },
     ],
   },
@@ -289,11 +325,19 @@ export const retirementEvents: GameEvent[] = [
     choices: [
       {
         label: '全部留给儿女',
-        outcomes: [{
-          weight: 100, condition: { flag: 'milestone_family' },
-          apply: (s) => { addScore(s, 'family', 5); s.flags.add('choice_will_family'); },
-          result: '血脉相连，理所当然。儿女在电话里哭了起来。',
-        }],
+        outcomes: [
+          {
+            weight: 100, condition: { flag: 'milestone_family' },
+            apply: (s) => { addScore(s, 'family', 5); s.flags.add('choice_will_family'); },
+            result: '血脉相连，理所当然。儿女在电话里哭了起来。',
+          },
+          // callback：无子女但从小照顾弟妹的大姐哥（choice_elder_sibling），把遗产留给弟妹
+          {
+            weight: 100, condition: { all: [{ flag: 'choice_elder_sibling' }, { notFlag: 'milestone_family' }] },
+            apply: (s) => { addScore(s, 'family', 12); s.flags.add('choice_will_family'); },
+            result: '你没有儿女，但弟弟/妹妹从小就是你帮着带大的。你说：「都是一家人。」律师点头记下。',
+          },
+        ],
       },
       {
         label: '捐给希望工程',
@@ -358,11 +402,19 @@ export const retirementEvents: GameEvent[] = [
     choices: [
       {
         label: '每周约着下棋喝茶，重温旧时光',
-        outcomes: [{
-          weight: 100, condition: { all: [] },
-          apply: (s) => { addScore(s, 'spirit', 12); addScore(s, 'family', 5); improveHealth(s); s.flags.add('milestone_old_friend'); s.flags.add('choice_reconnect_friend'); },
-          result: '你们聊了一辈子的故事。三个月后他走了，但你庆幸最后陪了他一段。',
-        }],
+        outcomes: [
+          {
+            // callback：这就是童年公园里认识的"第一个朋友"（milestone_first_friend）
+            weight: 200, condition: { flag: 'milestone_first_friend' },
+            apply: (s) => { addScore(s, 'spirit', 20); addScore(s, 'family', 10); improveHealth(s); improveHealth(s); s.flags.add('milestone_old_friend'); s.flags.add('choice_reconnect_friend'); s.flags.add('achievement_lifelong_friend'); },
+            result: '聊着聊着你认出来了——他就是五岁那年公园沙坑里，分给你半块糖的那个男孩。六十年的光阴一晃而过，你们又坐在一起下棋。三个月后他走了，你陪他走完了最后一程，就像当年他陪你迈出第一步。',
+          },
+          {
+            weight: 100, condition: { all: [] },
+            apply: (s) => { addScore(s, 'spirit', 12); addScore(s, 'family', 5); improveHealth(s); s.flags.add('milestone_old_friend'); s.flags.add('choice_reconnect_friend'); },
+            result: '你们聊了一辈子的故事。三个月后他走了，但你庆幸最后陪了他一段。',
+          },
+        ],
       },
       {
         label: '加了微信，但没再联系',
