@@ -36,7 +36,7 @@ export type CarryingKind = 'career' | 'family' | 'freedom' | 'memory';
 
 // ============ 结局五线积分 ============
 // 每个选择给某一线加分，决定结局走向
-export type EndingTrack = 'career' | 'family' | 'freedom' | 'fame' | 'spirit';
+export type EndingTrack = 'career' | 'family' | 'freedom' | 'fame' | 'spirit' | 'study';
 
 export interface Scores {
   career: number;   // 事业线（升职/创业/月薪暴涨）
@@ -44,7 +44,12 @@ export interface Scores {
   freedom: number;  // 自由线（丁克/躺平/旅行/独身）
   fame: number;     // 名望线（网红/作家/公众人物）
   spirit: number;   // 精神线（出家/顿悟/哲学）
+  study: number;    // 学业线（刷题/听课/补习/天赋 → 决定高考）
 }
+
+// ============ 学历与专业（高考后持久状态）============
+export type EducationLevel = 'dazhuan' | 'erben' | 'yiben' | '211' | '985' | 'overseas';
+export type Major = 'cs' | 'finance' | 'literature' | 'medicine' | 'education' | 'engineering' | 'art' | 'law';
 
 // ============ 条件 DSL（声明式）============
 // 保留：flag / notFlag / all / any
@@ -77,6 +82,9 @@ export type Condition =
   | { ageLt: number }
   // —— 结局积分判定 ——
   | { scoreGte: Partial<Record<EndingTrack, number>> }
+  // —— 学历与专业判定 ——
+  | { educationGte: EducationLevel }   // 学历层次 ≥ 某档
+  | { majorIn: Major[] }               // 专业属于某集合
   // —— 组合 ——
   | { all: Condition[] }
   | { any: Condition[] };
@@ -95,6 +103,9 @@ export interface GameState {
   // ★ 状态机字段（保证人生贯通一致性）
   employment: Employment;
   marriage: Marriage;
+  // ★ 学历与专业（高考后设置，求职/晋升/结局挂钩）
+  education?: EducationLevel;   // 'dazhuan'|'erben'|'yiben'|'211'|'985'|'overseas'
+  major?: Major;                // 大学专业，决定求职岗位池
   // ★ 结局五线积分（每个选择加分，决定结局）
   scores: Scores;
   // 辅助状态（保留 flag 机制）

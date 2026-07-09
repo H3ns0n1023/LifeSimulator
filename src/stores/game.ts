@@ -48,7 +48,7 @@ export const useGameStore = defineStore('game', () => {
       diseases: new Set(),
       employment: 'student',
       marriage: 'single',
-      scores: { career: 0, family: 0, freedom: 0, fame: 0, spirit: 0 },
+      scores: { career: 0, family: 0, freedom: 0, fame: 0, spirit: 0, study: 0 },
       flags: new Set(),
       history: [],
       meta: { seed, playthrough: totalPlaythroughs.value + 1, carryover },

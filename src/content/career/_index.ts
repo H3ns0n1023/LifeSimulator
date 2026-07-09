@@ -4,6 +4,7 @@ import {
   addScore, adjustSalary, adjustSavings, transitionEmployment, transitionMarriage,
   addDisease, worsenHealth, improveHealth,
 } from '../../engine/status';
+import { JOB_DICTIONARY } from '../../engine/constants';
 
 export const careerEvents: GameEvent[] = [
   // 1. 首次晋升 — 27-32 岁
@@ -459,7 +460,12 @@ export const careerEvents: GameEvent[] = [
       baseWeight: 8,
       requires: [{ employment: 'employed' }, { notFlag: 'milestone_first_day' }],
     },
-    text: '入职第一天，HR 给你发了工牌。你戴着它在卫生间镜子前照了半天——「某某公司，xx，工程师」。',
+    text: (s) => {
+      // 从岗位词典读具体公司/岗位，替换"某某公司"占位符
+      const job = JOB_DICTIONARY.find((j) => s.flags.has(j.id));
+      if (job) return `入职第一天，HR 给你发了工牌。你戴着它在卫生间镜子前照了半天——「${job.company}，${job.title}」。`;
+      return '入职第一天，HR 给你发了工牌。你戴着它在卫生间镜子前照了半天。';
+    },
     choices: [
       {
         label: '主动认识每个人，建立人脉',

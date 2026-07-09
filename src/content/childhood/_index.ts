@@ -72,7 +72,7 @@ export const childhoodEvents: GameEvent[] = [
         label: '接过名片，妈妈收了起来',
         outcomes: [{
           weight: 100, condition: { all: [] },
-          apply: (s) => { s.flags.add('foreshadow_child_prodigy'); addScore(s, 'career', 5); },
+          apply: (s) => { s.flags.add('foreshadow_child_prodigy'); addScore(s, 'study', 5); },
           result: '名片被压在了抽屉最底层。但那扇门，一直在那里。',
         }],
       },
@@ -172,6 +172,84 @@ export const childhoodEvents: GameEvent[] = [
           weight: 100, condition: { all: [] },
           apply: (s) => { addDisease(s, 'insomnia'); s.flags.add('milestone_left_behind'); },
           result: '妈妈的眼泪比你的还多。火车还是开走了。',
+        }],
+      },
+    ],
+  },
+
+  // 8. 入园分离焦虑 — 填补 3-4 岁空白
+  {
+    id: 'childhood_kindergarten',
+    stage: 'childhood', ageRange: [3, 4], once: true,
+    trigger: { baseWeight: 4 },
+    text: '第一次上幼儿园。妈妈把你放下转身要走，你死死拽住她的衣角，嚎啕大哭。',
+    choices: [
+      {
+        label: '哭着接受了新环境',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'family', 3); addScore(s, 'spirit', 2); s.flags.add('milestone_kindergarten'); },
+          result: '一周后你不哭了。你认识了第一个幼儿园朋友。',
+        }],
+      },
+      {
+        label: '绝食抗议，逼妈妈接回家',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addDisease(s, 'malnutrition'); s.flags.add('milestone_kindergarten'); s.flags.add('choice_rebel_kid'); },
+          result: '妈妈心软接你回家了。但你也错过了学会和同龄人相处的机会。',
+        }],
+      },
+    ],
+  },
+
+  // 9. 弟妹出生 — 填补 2-5 岁，影响家庭线
+  {
+    id: 'childhood_sibling',
+    stage: 'childhood', ageRange: [2, 5], once: true,
+    trigger: { baseWeight: 3 },
+    text: '妈妈肚子越来越大，然后带回来一个会哭的小东西。大人们围着它转，没人理你了。',
+    choices: [
+      {
+        label: '当个懂事的大孩子',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'family', 6); s.flags.add('milestone_sibling'); s.flags.add('choice_elder_sibling'); },
+          result: '你学会了帮妈妈递奶瓶。弟弟/妹妹第一次对你笑时，你心里软了一块。',
+        }],
+      },
+      {
+        label: '偷偷欺负小东西出气',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'family', -3); s.flags.add('milestone_sibling'); s.flags.add('choice_jealous_kid'); },
+          result: '被妈妈发现后揍了一顿。你和弟弟/妹妹的关系，从小就别扭。',
+        }],
+      },
+    ],
+  },
+
+  // 10. 宠物离世 — 呼应 stray_cat 的 milestone_has_pet
+  {
+    id: 'childhood_pet_loss',
+    stage: 'childhood', ageRange: [5, 6], once: true,
+    trigger: { baseWeight: 5, requires: [{ flag: 'milestone_has_pet' }] },
+    text: '你养了快一年的橘猫忽然不动了。它蜷在窝里，身体已经凉了。',
+    choices: [
+      {
+        label: '认真埋葬它，第一次学会告别',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'spirit', 5); addScore(s, 'family', 3); s.flags.add('milestone_first_loss'); s.flags.add('choice_faced_loss'); },
+          result: '爸爸陪你在树下挖了个小坑。你第一次知道，爱过的东西会离开。',
+        }],
+      },
+      {
+        label: '哭到睡着，假装它还在',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'family', 2); addDisease(s, 'insomnia'); s.flags.add('milestone_first_loss'); },
+          result: '你连续做了一周的噩梦。妈妈把你抱在怀里，你才慢慢好起来。',
         }],
       },
     ],

@@ -1,6 +1,7 @@
 // src/content/school/_index.ts
 import type { GameEvent } from '../../engine/types';
-import { addScore, worsenHealth, addDisease } from '../../engine/status';
+import { addScore, worsenHealth, addDisease, setEducation } from '../../engine/status';
+import { GAOKAO_THRESHOLDS } from '../../engine/constants';
 
 export const schoolEvents: GameEvent[] = [
   // 1. 初恋 — 10-13 岁，家庭线
@@ -51,26 +52,26 @@ export const schoolEvents: GameEvent[] = [
           {
             weight: 70,
             condition: { all: [{ flag: 'milestone_prodigy_class' }, { flag: 'milestone_rich_family' }] },
-            apply: (s) => { addScore(s, 'career', 12); },
+            apply: (s) => { addScore(s, 'study', 12); },
             result: '神童底子 + 家里请得起名师一对一，你的成绩火箭般蹿升。',
           },
           {
             weight: 60,
             condition: { flag: 'milestone_prodigy_class' },
-            apply: (s) => { addScore(s, 'career', 10); },
+            apply: (s) => { addScore(s, 'study', 10); },
             result: '你的成绩明显进步。神童的底子毕竟还在。',
           },
           {
             // 贫困家境：拼命但更苦，失眠更重
             weight: 50,
             condition: { all: [{ notFlag: 'milestone_prodigy_class' }, { flag: 'milestone_poor_family' }] },
-            apply: (s) => { addScore(s, 'career', 6); addDisease(s, 'insomnia'); worsenHealth(s); },
+            apply: (s) => { addScore(s, 'study', 6); addDisease(s, 'insomnia'); worsenHealth(s); },
             result: '你借来的旧教辅翻烂了，台灯下熬到凌晨。成绩涨了一点，但身体有点扛不住。',
           },
           {
             weight: 40,
             condition: { notFlag: 'milestone_prodigy_class' },
-            apply: (s) => { addScore(s, 'career', 5); addDisease(s, 'insomnia'); },
+            apply: (s) => { addScore(s, 'study', 5); addDisease(s, 'insomnia'); },
             result: '你拼了命，成绩却原地踏步。失眠开始找上你。',
           },
         ],
@@ -150,38 +151,49 @@ export const schoolEvents: GameEvent[] = [
     ],
   },
 
-  // 5. 高考 — 18 岁（决定大学去向，影响事业线起点）
+  // 5. 高考 — 18 岁（按 study 分档决定 education，因果化，修重叠 bug）
   {
     id: 'school_gaokao',
     stage: 'school', ageRange: [18, 18], once: true,
     trigger: { baseWeight: 10 },
-    text: '高考来了。你走出考场，心情复杂。',
-    choices: [{ label: '继续', outcomes: [
-      {
-        weight: 30,
-        condition: { flag: 'milestone_prodigy_class' },
-        apply: (s) => { s.flags.add('milestone_top_university'); addScore(s, 'career', 15); addScore(s, 'fame', 5); },
-        result: '你考上了顶尖大学。少年班的天赋终于在高考爆发。',
-      },
-      {
-        weight: 40,
-        condition: { all: [{ notFlag: 'milestone_prodigy_class' }, { scoreGte: { career: 15 } }] },
-        apply: (s) => { s.flags.add('milestone_top_university'); addScore(s, 'career', 10); },
-        result: '你考上了顶尖大学。',
-      },
-      {
-        weight: 40,
-        condition: { scoreGte: { career: 5 } },
-        apply: (s) => { s.flags.add('milestone_average_university'); addScore(s, 'career', 3); },
-        result: '你考上了一所普通大学。',
-      },
-      {
-        weight: 20,
-        condition: { all: [] },
-        apply: (s) => { addScore(s, 'freedom', 5); s.flags.add('milestone_failed_gaokao'); },
-        result: '高考失利，你上了大专。但你心态不错，条条大路通罗马。',
-      },
-    ]}],
+    text: '高考来了。你走出考场，心情复杂。查分那天，手抖着点开了网页。',
+    choices: [{
+      label: '查看成绩',
+      outcomes: [{
+        weight: 100, condition: { all: [] },
+        apply: (s) => {
+          const st = s.scores.study;
+          // 按 study 分档（区间互斥，从高到低），用 flag 标记档位供 result 取文案
+          if (st >= GAOKAO_THRESHOLDS.prodigy985 && s.flags.has('milestone_prodigy_class')) {
+            setEducation(s, '985'); addScore(s, 'career', 15); addScore(s, 'study', 10); addScore(s, 'fame', 5);
+            s.flags.add('gk_prodigy985');
+          } else if (st >= GAOKAO_THRESHOLDS['985']) {
+            setEducation(s, '985'); addScore(s, 'career', 10); addScore(s, 'study', 5);
+            s.flags.add('gk_985');
+          } else if (st >= GAOKAO_THRESHOLDS['211']) {
+            setEducation(s, '211'); addScore(s, 'career', 8); addScore(s, 'study', 3);
+            s.flags.add('gk_211');
+          } else if (st >= GAOKAO_THRESHOLDS.yiben) {
+            setEducation(s, 'yiben'); addScore(s, 'career', 5);
+            s.flags.add('gk_yiben');
+          } else if (st >= GAOKAO_THRESHOLDS.erben) {
+            setEducation(s, 'erben'); addScore(s, 'career', 3);
+            s.flags.add('gk_erben');
+          } else {
+            setEducation(s, 'dazhuan'); addScore(s, 'freedom', 5);
+            s.flags.add('gk_dazhuan');
+          }
+        },
+        result: (s) => {
+          if (s.flags.has('gk_prodigy985')) return '你以省状元身份被清华少年班录取。全市都为你放鞭炮。';
+          if (s.flags.has('gk_985')) return '你考上了 985 名校！村里拉了横幅，亲戚轮番上门道贺。';
+          if (s.flags.has('gk_211')) return '稳稳的 211。班主任松了口气，爸妈脸上也有光了。';
+          if (s.flags.has('gk_yiben')) return '过了一本线，去了省城的一本。不错的开始。';
+          if (s.flags.has('gk_erben')) return '二本。虽然不算出彩，但至少有大学读。';
+          return '高考失利，只够上大专。你安慰自己：条条大路通罗马。';
+        },
+      }],
+    }],
   },
 
   // 6. 校园霸凌 — 10-13 岁（呼应留守儿童铺垫）
@@ -285,7 +297,7 @@ export const schoolEvents: GameEvent[] = [
         outcomes: [
           {
             weight: 60, condition: { all: [] },
-            apply: (s) => { addScore(s, 'career', 3); s.flags.add('choice_cheat_success'); },
+            apply: (s) => { addScore(s, 'study', 3); s.flags.add('choice_cheat_success'); },
             result: '你没被发现，进了年级前五十。但每次想起都后怕。',
           },
           {
@@ -353,18 +365,18 @@ export const schoolEvents: GameEvent[] = [
         label: '通过选拔，进入少年班',
         outcomes: [
           {
-            weight: 50, condition: { scoreGte: { career: 20 } },
-            apply: (s) => { addScore(s, 'career', 20); addScore(s, 'fame', 10); addDisease(s, 'insomnia'); s.flags.add('milestone_prodigy_class'); },
+            weight: 50, condition: { scoreGte: { study: 20 } },
+            apply: (s) => { addScore(s, 'study', 20); addScore(s, 'fame', 10); addDisease(s, 'insomnia'); s.flags.add('milestone_prodigy_class'); },
             result: '你 12 岁就进了大学。同学们都比你大七八岁，他们看你的眼神，说不清是佩服还是怪异。',
           },
           {
-            weight: 35, condition: { scoreGte: { career: 10 } },
-            apply: (s) => { addScore(s, 'career', 10); s.flags.add('choice_prodigy_failed'); },
+            weight: 35, condition: { scoreGte: { study: 10 } },
+            apply: (s) => { addScore(s, 'study', 10); s.flags.add('choice_prodigy_failed'); },
             result: '你没通过最后的面试。妈妈松了口气，你却莫名失落。',
           },
           {
             weight: 15, condition: { all: [
-              { scoreGte: { career: 20 } },
+              { scoreGte: { study: 20 } },
               { flag: 'foreshadow_child_prodigy' },
             ]},
             apply: (s) => { s.flags.add('twist_burnt_out'); addDisease(s, 'depression'); },

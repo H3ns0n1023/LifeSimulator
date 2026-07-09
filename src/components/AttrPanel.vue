@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { GameState, EndingTrack } from '../engine/types';
-import { HEALTH_LABEL, TRACK_LABEL, SCORE_MAX } from '../engine/constants';
+import { HEALTH_LABEL, TRACK_LABEL, SCORE_MAX, EDUCATION_LABEL, MAJOR_LABEL, JOB_DICTIONARY } from '../engine/constants';
 
 const props = defineProps<{ state: GameState }>();
 
@@ -13,10 +13,18 @@ const MARRIAGE_LABEL: Record<string, string> = {
   single: '单身', dating: '恋爱中', married: '已婚', divorced: '离异', widowed: '丧偶',
 };
 
-const tracks: EndingTrack[] = ['career', 'family', 'freedom', 'fame', 'spirit'];
+const tracks: EndingTrack[] = ['career', 'family', 'freedom', 'fame', 'spirit', 'study'];
 
 // 学生期（student）显示零花钱，成年显示月薪+存款
 const isStudent = computed(() => props.state.employment === 'student');
+
+// 学历/专业/岗位文案（成年后显示）
+const eduLabel = computed(() => props.state.education ? EDUCATION_LABEL[props.state.education] : '');
+const majorLabel = computed(() => props.state.major ? MAJOR_LABEL[props.state.major] : '');
+const jobTitle = computed(() => {
+  const job = JOB_DICTIONARY.find((j) => props.state.flags.has(j.id));
+  return job ? `${job.company}·${job.title}` : '';
+});
 
 function bar(v: number) {
   return { width: `${Math.max(0, Math.min(100, (v / SCORE_MAX) * 100))}%` };
@@ -88,7 +96,8 @@ const salaryNoteTone = computed(() => {
 
     <!-- 状态机 -->
     <h3>状态</h3>
-    <div class="row"><span class="label">职业</span><span class="value">{{ EMPLOYMENT_LABEL[props.state.employment] }}</span></div>
+    <div class="row"><span class="label">职业</span><span class="value">{{ jobTitle || EMPLOYMENT_LABEL[props.state.employment] }}</span></div>
+    <div v-if="eduLabel" class="row"><span class="label">学历</span><span class="value">{{ eduLabel }}<span v-if="majorLabel" class="sub"> · {{ majorLabel }}</span></span></div>
     <div class="row"><span class="label">婚姻</span><span class="value">{{ MARRIAGE_LABEL[props.state.marriage] }}</span></div>
 
     <!-- 五线积分 -->
@@ -108,6 +117,7 @@ h3 { margin: 0.75rem 0 0.25rem; font-size: 0.85rem; color: #888; }
 .label { width: 3rem; color: #555; }
 .value { font-weight: bold; }
 .value.zero { color: #aaa; }
+.sub { font-weight: normal; color: #888; font-size: 0.85em; }
 /* 健康档位配色 */
 .value.healthy { color: #27ae60; }
 .value.subhealthy { color: #f39c12; }

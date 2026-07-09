@@ -1,7 +1,7 @@
 // src/engine/status.ts
 // 状态机受控转换函数 + 健康档位操作 + 病症管理
 // 所有对 employment / marriage / health 的修改都应走这里，以保证一致性。
-import type { GameState, HealthStage, Employment, Marriage, EndingTrack } from './types';
+import type { GameState, HealthStage, Employment, Marriage, EndingTrack, EducationLevel, Major } from './types';
 import {
   HEALTH_RANK,
   HEALTH_ORDER,
@@ -177,6 +177,25 @@ export function wealthTier(s: GameState): 'rich' | 'mid' | 'poor' {
   if (w >= WEALTH_TIER.rich) return 'rich';
   if (w < WEALTH_TIER.poor) return 'poor';
   return 'mid';
+}
+
+// ============ 学历与专业 ============
+
+/**
+ * 设置学历层次（高考后调用）。major 可选，大学选专业时再设。
+ * 同时写入对应的 milestone flag 供旧 condition 读取，并清理互斥的旧学历 flag。
+ */
+export function setEducation(s: GameState, level: EducationLevel, major?: Major): void {
+  // 清理互斥的旧学历 flag
+  const eduFlags = ['milestone_top_university', 'milestone_average_university', 'milestone_failed_gaokao'];
+  for (const f of eduFlags) s.flags.delete(f);
+  // 写入新层次
+  s.education = level;
+  if (major) s.major = major;
+  // 同步兼容 flag（顶部 985/211、中部一本二本、底部大专）
+  if (level === '985' || level === 'overseas') s.flags.add('milestone_top_university');
+  else if (level === '211' || level === 'yiben') s.flags.add('milestone_average_university');
+  else s.flags.add('milestone_failed_gaokao');
 }
 
 /**

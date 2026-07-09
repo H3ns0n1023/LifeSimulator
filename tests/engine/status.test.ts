@@ -7,6 +7,7 @@ import {
   setSalary, adjustSalary, applyYearlySalary,
   setSavings, adjustSavings, setAllowance, adjustAllowance,
   netWorth, wealthTier,
+  setEducation,
   addScore, totalScore, topTrack,
 } from '../../src/engine/status';
 import { makeState } from '../fixtures';
@@ -153,7 +154,7 @@ describe('结局积分', () => {
   });
 
   it('addScore 上限 100（防膨胀）', () => {
-    const s = makeState({ scores: { career: 90, family: 0, freedom: 0, fame: 0, spirit: 0 } });
+    const s = makeState({ scores: { career: 90, family: 0, freedom: 0, fame: 0, spirit: 0, study: 0 } });
     addScore(s, 'career', 30);
     expect(s.scores.career).toBe(100);
   });
@@ -164,13 +165,13 @@ describe('结局积分', () => {
     expect(s.scores.career).toBe(0);
   });
 
-  it('totalScore 五线求和', () => {
-    const s = makeState({ scores: { career: 10, family: 20, freedom: 30, fame: 40, spirit: 50 } });
+  it('totalScore 六线求和', () => {
+    const s = makeState({ scores: { career: 10, family: 20, freedom: 30, fame: 40, spirit: 50, study: 0 } });
     expect(totalScore(s)).toBe(150);
   });
 
   it('topTrack 返回最高分线', () => {
-    const s = makeState({ scores: { career: 10, family: 80, freedom: 5, fame: 0, spirit: 0 } });
+    const s = makeState({ scores: { career: 10, family: 80, freedom: 5, fame: 0, spirit: 0, study: 0 } });
     expect(topTrack(s)).toBe('family');
   });
 });
@@ -302,5 +303,43 @@ describe('金钱细化：存款 / 零花钱 / 财富档位', () => {
     expect(wealthTier(makeState({ salary: 0, savings: 10000 }))).toBe('poor');
     // mid：介于两者之间
     expect(wealthTier(makeState({ salary: 5000, savings: 20000 }))).toBe('mid'); // 80000
+  });
+});
+
+// ============ 学历 setEducation ============
+describe('学历 setEducation', () => {
+  it('设置 education 和 major', () => {
+    const s = makeState();
+    setEducation(s, '985', 'cs');
+    expect(s.education).toBe('985');
+    expect(s.major).toBe('cs');
+  });
+
+  it('985/overseas 写入 milestone_top_university flag', () => {
+    const s = makeState();
+    setEducation(s, '985');
+    expect(s.flags.has('milestone_top_university')).toBe(true);
+    expect(s.flags.has('milestone_average_university')).toBe(false);
+  });
+
+  it('211/yiben 写入 milestone_average_university flag', () => {
+    const s = makeState();
+    setEducation(s, '211');
+    expect(s.flags.has('milestone_average_university')).toBe(true);
+  });
+
+  it('dazhuan/erben 写入 milestone_failed_gaokao flag', () => {
+    const s = makeState();
+    setEducation(s, 'dazhuan');
+    expect(s.flags.has('milestone_failed_gaokao')).toBe(true);
+  });
+
+  it('重复设置学历时清理旧的互斥 flag', () => {
+    const s = makeState();
+    setEducation(s, '985');
+    expect(s.flags.has('milestone_top_university')).toBe(true);
+    setEducation(s, 'dazhuan');
+    expect(s.flags.has('milestone_top_university')).toBe(false); // 旧 flag 被清理
+    expect(s.flags.has('milestone_failed_gaokao')).toBe(true);
   });
 });

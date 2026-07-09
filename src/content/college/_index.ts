@@ -1,8 +1,43 @@
 // src/content/college/_index.ts
-import type { GameEvent } from '../../engine/types';
-import { addScore, adjustSalary, adjustSavings, transitionEmployment, worsenHealth } from '../../engine/status';
+import type { GameEvent, Major } from '../../engine/types';
+import { addScore, adjustSalary, adjustSavings, transitionEmployment, worsenHealth, setEducation } from '../../engine/status';
+import { JOB_DICTIONARY, EDUCATION_RANK, EDUCATION_LABEL } from '../../engine/constants';
+import type { JobEntry } from '../../engine/constants';
 
 export const collegeEvents: GameEvent[] = [
+  // 0. 选专业 — 19 岁（入学后立刻选，决定求职岗位池）
+  {
+    id: 'college_choose_major',
+    stage: 'college', ageRange: [19, 19], once: true,
+    trigger: { baseWeight: 10 },
+    text: (s) => `你拿着录取通知书走进${EDUCATION_LABEL[s.education ?? 'dazhuan']}的校园。迎新老师问：「同学，你想读什么专业？」`,
+    choices: [
+      // 计算机科学：211 及以上可选
+      { label: '计算机科学', hint: '写代码，进大厂', visibleWhen: { educationGte: '211' },
+        outcomes: [{ weight: 100, condition: { all: [] }, apply: (s) => { s.major = 'cs'; s.flags.add('major_cs'); }, result: '你选了计算机。学长说这行钱多，就是费头发。' }] },
+      // 金融：211 及以上可选
+      { label: '金融', hint: '投行/银行', visibleWhen: { educationGte: '211' },
+        outcomes: [{ weight: 100, condition: { all: [] }, apply: (s) => { s.major = 'finance'; s.flags.add('major_finance'); }, result: '你选了金融。陆家嘴的灯火在向你招手。' }] },
+      // 医学：985 及以上可选（培养周期长）
+      { label: '临床医学', hint: '当医生，越老越吃香', visibleWhen: { educationGte: '985' },
+        outcomes: [{ weight: 100, condition: { all: [] }, apply: (s) => { s.major = 'medicine'; s.flags.add('major_medicine'); }, result: '你选了临床医学。本硕博连读八年，你做好了准备。' }] },
+      // 法学：211 及以上可选
+      { label: '法学', hint: '律所/公检法', visibleWhen: { educationGte: '211' },
+        outcomes: [{ weight: 100, condition: { all: [] }, apply: (s) => { s.major = 'law'; s.flags.add('major_law'); }, result: '你选了法学。法考通过率 10%，但你决定搏一把。' }] },
+      // 工科：所有学历可选（大专也有数控/技术师傅路线）
+      { label: '工科', hint: '工程师/技术师傅', visibleWhen: { all: [] },
+        outcomes: [{ weight: 100, condition: { all: [] }, apply: (s) => { s.major = 'engineering'; s.flags.add('major_engineering'); }, result: '你选了工科。这门手艺，越老越值钱。' }] },
+      // 中文：一本及以上可选
+      { label: '中文系', hint: '当老师/搞文字', visibleWhen: { educationGte: 'yiben' },
+        outcomes: [{ weight: 100, condition: { all: [] }, apply: (s) => { s.major = 'literature'; s.flags.add('major_literature'); }, result: '你选了中文系。从此与书为伴。' }] },
+      // 师范：一本及以上可选（大专走小学老师）
+      { label: '师范', hint: '当老师', visibleWhen: { educationGte: 'yiben' },
+        outcomes: [{ weight: 100, condition: { all: [] }, apply: (s) => { s.major = 'education'; s.flags.add('major_education'); }, result: '你选了师范。未来的三尺讲台在等你。' }] },
+      // 艺术：所有学历可选
+      { label: '艺术设计', hint: '设计/创作', visibleWhen: { all: [] },
+        outcomes: [{ weight: 100, condition: { all: [] }, apply: (s) => { s.major = 'art'; s.flags.add('major_art'); }, result: '你选了艺术。作品集就是你的简历。' }] },
+    ],
+  },
   // 1. 社团加入 — 19-21 岁
   {
     id: 'college_club_join',
@@ -106,51 +141,69 @@ export const collegeEvents: GameEvent[] = [
     ],
   },
 
-  // 4. 求职 — 22 岁（关键节点：学生 → 就业状态机转换）
+  // 4. 求职 — 22 岁（按 学历×专业 从岗位词典匹配具体岗位）
   {
     id: 'college_first_job_hunt',
     stage: 'college', ageRange: [22, 22], once: true,
     trigger: { baseWeight: 10 },
-    text: '毕业季到了，你开始找工作。',
+    text: '毕业季到了，你开始投简历。',
     choices: [
       {
-        label: '去大厂卷',
-        outcomes: [{
-          weight: 100,
-          condition: { any: [{ flag: 'skill_coding' }, { scoreGte: { career: 25 } }] },
-          apply: (s) => {
-            transitionEmployment(s, 'employed');
-            s.flags.add('milestone_first_job_tech');
-            // 有实习经验 + 考研学历，起薪更高
-            const base = 15000;
-            const internBonus = s.flags.has('skill_intern') ? 3000 : 0;
-            const gradBonus = s.flags.has('milestone_grad_school') ? 4000 : 0;
-            adjustSalary(s, base + internBonus + gradBonus);
-            addScore(s, 'career', 10);
-            worsenHealth(s); // 996 伤身
-          },
-          result: (s) => `你拿到了大厂 offer，月薪${s.flags.has('milestone_grad_school') ? '两万三' : (s.flags.has('skill_intern') ? '一万八' : '一万五')}。${s.flags.has('skill_intern') ? '实习经历让你脱颖而出。' : ''}入职第一天就开始 996。`,
-        }],
-      },
-      {
-        label: '找份轻松的工作',
+        label: '海投简历，找份工作',
         outcomes: [{
           weight: 100, condition: { all: [] },
           apply: (s) => {
             transitionEmployment(s, 'employed');
-            const gradBonus = s.flags.has('milestone_grad_school') ? 2000 : 0;
-            adjustSalary(s, 6000 + gradBonus);
-            addScore(s, 'freedom', 5);
+            // 从岗位词典匹配：学历达标 + 专业对口（studyBonus 门槛也满足）
+            const edu = s.education ?? 'dazhuan';
+            const eduRank = EDUCATION_RANK[edu];
+            const candidates = JOB_DICTIONARY.filter((job) => {
+              if (eduRank < EDUCATION_RANK[job.educationGte]) return false;
+              if (job.majors.length > 0 && (!s.major || !job.majors.includes(s.major))) return false;
+              if (job.studyBonus && s.scores.study < job.studyBonus) return false;
+              return true;
+            });
+            // 取学历门槛最高（最对口）的一个作为"理想 offer"
+            const job = candidates.sort((a, b) => EDUCATION_RANK[b.educationGte] - EDUCATION_RANK[a.educationGte])[0]
+              ?? JOB_DICTIONARY.find((j) => j.id === 'job_clerk')!;  // 兜底文员
+            // 实习/考研加薪
+            const internBonus = s.flags.has('skill_intern') ? Math.round(job.salary * 0.15) : 0;
+            const gradBonus = s.flags.has('milestone_grad_school') ? Math.round(job.salary * 0.2) : 0;
+            adjustSalary(s, job.salary + internBonus + gradBonus);
+            s.flags.add(job.id);                 // 记录具体岗位 flag（career_first_day 读它）
+            s.flags.add('milestone_first_job');  // 通用求职里程碑
+            if (job.id === 'job_cs_bigtech' || job.id === 'job_algo_bigtech' || job.id === 'job_cs_mid') {
+              s.flags.add('milestone_first_job_tech');  // 兼容旧逻辑（IPO/行业寒冬读它）
+            }
+            if (job.careerDelta) addScore(s, 'career', job.careerDelta);
+            if (job.freedomDelta) addScore(s, 'freedom', job.freedomDelta);
+            if (job.familyDelta) addScore(s, 'family', job.familyDelta);
+            if (job.harmHealth) worsenHealth(s);
+            // 记录岗位名供 result 读取
+            s.flags.add(`job_title|${job.title}`);
+            s.flags.add(`job_company|${job.company}`);
           },
-          result: (s) => `你进了一家小公司，月薪${s.flags.has('milestone_grad_school') ? '八千' : '六千'}，朝九晚五。`,
+          result: (s) => {
+            const title = [...s.flags].find((f) => f.startsWith('job_title|'))?.slice('job_title|'.length) ?? '职员';
+            const company = [...s.flags].find((f) => f.startsWith('job_company|'))?.slice('job_company|'.length) ?? '某公司';
+            const job = JOB_DICTIONARY.find((j) => s.flags.has(j.id));
+            return job ? `${job.desc}（${company}·${title}，月薪 ${job.salary}）` : '你找到了一份工作。';
+          },
         }],
       },
       {
         label: '考研，再苟三年',
         outcomes: [{
-          weight: 100, condition: { scoreGte: { career: 15 } },
-          apply: (s) => { addScore(s, 'career', 10); s.flags.add('milestone_grad_school'); },
-          result: '你成功上岸，再读三年。学生身份得以延长。',
+          weight: 100, condition: { scoreGte: { study: 15 } },
+          apply: (s) => {
+            addScore(s, 'career', 10); s.flags.add('milestone_grad_school');
+            // 考研成功提升学历一档（上限 985）
+            const cur = s.education ?? 'dazhuan';
+            const rank = EDUCATION_RANK[cur];
+            const up: Record<number, typeof cur> = { 0: 'erben', 1: 'yiben', 2: '211', 3: '985', 4: '985' };
+            s.education = up[rank] ?? cur;
+          },
+          result: '你成功上岸，再读三年。学历也上了一档。',
         }],
       },
       {

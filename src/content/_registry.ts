@@ -4,6 +4,8 @@ import { dreamGaokao } from './college/dream-gaokao';
 import { overworkCritical } from './chains/overwork-death';
 import { slackerWriting } from './chains/slacker-author';
 import { viralShortVideo } from './chains/viral-short-video';
+import { inventorBreakthrough } from './chains/inventor-breakthrough';
+import { influencerCancel } from './chains/influencer-cancel';
 import { rebornAsGaokaoEnding } from './endings/reborn-as-gaokao';
 import { underworldHrEnding } from './endings/underworld-hr';
 import { slackerAuthorEnding } from './endings/slacker-author';
@@ -13,7 +15,12 @@ import { deportedEnding } from './endings/deported';
 import { burntOutEnding } from './endings/burnt-out';
 import { topInfluencerEnding } from './endings/top-influencer';
 import { canceledEnding } from './endings/canceled';
+import { overworkRichEnding, lonelyTopEnding, financialFreedomEnding, suddenDeathRichEnding } from './endings/career-variants';
+import { folkInventorEnding } from './endings/folk-inventor';
+import { influencerForgottenEnding } from './endings/influencer-forgotten';
+import { scholarEnding } from './endings/scholar';
 import { secretReading } from './school/secret-reading';
+import { inventorDream } from './school/inventor-dream';
 import { childhoodEvents } from './childhood/_index';
 import { schoolEvents } from './school/_index';
 import { collegeEvents } from './college/_index';
@@ -23,15 +30,19 @@ import { crisisLowHappiness } from './thresholds/crisis-low-happiness';
 import { crisisLowHealth } from './thresholds/crisis-low-health';
 import { peakHighCombined } from './thresholds/peak-high-combined';
 import { midlifeCrisis } from './thresholds/midlife-crisis';
-import { topTrack, totalScore } from '../engine/status';
+import { topTrack, totalScore, healthAtLeast } from '../engine/status';
 
 // 内联结局（基于五线积分判定，spec §6.1 要求，无需单独文件）
 
-// 事业大成：事业线高分且为主修线
+// 事业大成：事业线高分且为主修线（健康尚可、活过55岁——其余细分已在上方拦截）
 const careerMasterEnding: Ending = {
   id: 'ending_career_master',
   priority: 50,
-  condition: (s) => s.scores.career >= 70 && topTrack(s) === 'career',
+  condition: (s) =>
+    s.scores.career >= 70 &&
+    topTrack(s) === 'career' &&
+    !healthAtLeast(s, 'severe') &&   // 健康差的走了 overwork_rich
+    s.age >= 55,                      // 早逝的走了 sudden_death_rich
   title: '事业有成',
   desc: (s) => `你以月薪 ${s.salary} 元、存款 ${s.savings} 元、事业分 ${s.scores.career} 走到人生终点。外人看来，你是世俗意义上的赢家。`,
   rating: (s) => (s.scores.career >= 85 ? 'S' : 'A'),
@@ -91,10 +102,13 @@ export const ALL_EVENTS: GameEvent[] = [
   // 铺垫
   dreamGaokao,
   secretReading,
+  inventorDream,
   // 招牌链
   overworkCritical,
   slackerWriting,
   viralShortVideo,
+  inventorBreakthrough,
+  influencerCancel,
   // 流程保底
   ...childhoodEvents,
   ...schoolEvents,
@@ -118,9 +132,17 @@ export const ALL_ENDINGS: Ending[] = [
   overseasEnding,          // priority 85 — 远渡重洋
   deportedEnding,          // priority 80 — 南柯一梦
   canceledEnding,          // priority 75 — 赛博社死
+  folkInventorEnding,      // priority 73 — 民间爱迪生
   monkEnding,              // priority 70 — 顿悟出家
+  influencerForgottenEnding, // priority 62 — 过气网红
+  scholarEnding,             // priority 52 — 学术泰斗（study 线）
+  // 事业线细分（priority 56-62，在 careerMaster 之上拦截分流）
+  overworkRichEnding,      // priority 62 — 用命换钱（健康差）
+  lonelyTopEnding,         // priority 60 — 高处不胜寒（孤身）
+  financialFreedomEnding,  // priority 58 — 财务自由（财富足）
+  suddenDeathRichEnding,   // priority 56 — 鞠躬尽瘁（早逝）
   // 五线积分结局（中优先级）
-  careerMasterEnding,      // priority 50 — 事业有成
+  careerMasterEnding,      // priority 50 — 事业有成（健康尚可+活过55岁）
   happyFamilyEnding,       // priority 50 — 幸福家庭
   dinkEnding,              // priority 48 — 丁克伉俪
   spiritMasterEnding,      // priority 46 — 智者

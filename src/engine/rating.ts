@@ -9,14 +9,14 @@ const countFlagsByPrefix = (flags: Set<string>, prefix: string): number =>
 /**
  * 计算评级。
  * 评分构成（占位权重，playtest 调）：
- * - scoreAvg (0.6)：五线积分平均分（0-100）
+ * - scoreAvg (0.6)：六线积分平均分（0-100，career/family/freedom/fame/spirit/study）
  * - lifespan (0.2)：寿命分，满分 85 岁
  * - achievement (0.1)：每个 achievement_* flag +5
  * - twist (0.1)：每个 twist_* flag +10（奖励发现招牌反转）
  */
 export function calcRating(s: GameState): Rating {
   const scoreTotal = totalScore(s);
-  const scoreAvg = scoreTotal / 5; // 五线平均
+  const scoreAvg = scoreTotal / 6; // 六线平均（study 加入后）
   const lifespanScore = ((s.age - 1) / 85) * 100;
   const achievementBonus = countFlagsByPrefix(s.flags, 'achievement_') * 5;
   const chainBonus = countFlagsByPrefix(s.flags, 'twist_') * 10;

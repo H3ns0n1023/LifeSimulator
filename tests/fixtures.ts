@@ -18,7 +18,7 @@ export function makeState(overrides: Partial<GameState> = {}): GameState {
     diseases: new Set<string>(),
     employment: 'employed',
     marriage: 'single',
-    scores: { career: 0, family: 0, freedom: 0, fame: 0, spirit: 0 },
+    scores: { career: 0, family: 0, freedom: 0, fame: 0, spirit: 0, study: 0 },
     flags: new Set<string>(),
     history: [],
     meta: { seed: 12345, playthrough: 1 },

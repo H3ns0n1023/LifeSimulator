@@ -53,6 +53,31 @@ describe('evaluateCondition', () => {
     expect(evaluateCondition({ allowanceLt: 100 }, makeState({ allowance: 50 }))).toBe(true);
   });
 
+  // —— 学历与专业 ——
+  it('educationGte: returns true when education rank >= threshold', () => {
+    expect(evaluateCondition({ educationGte: '211' }, makeState({ education: '985' }))).toBe(true);
+  });
+
+  it('educationGte: returns false when education rank < threshold', () => {
+    expect(evaluateCondition({ educationGte: '211' }, makeState({ education: 'yiben' }))).toBe(false);
+  });
+
+  it('educationGte: returns false when education undefined', () => {
+    expect(evaluateCondition({ educationGte: 'dazhuan' }, makeState({}))).toBe(false);
+  });
+
+  it('majorIn: returns true when major in list', () => {
+    expect(evaluateCondition({ majorIn: ['cs', 'finance'] }, makeState({ major: 'cs' }))).toBe(true);
+  });
+
+  it('majorIn: returns false when major not in list', () => {
+    expect(evaluateCondition({ majorIn: ['cs'] }, makeState({ major: 'law' }))).toBe(false);
+  });
+
+  it('majorIn: returns false when major undefined', () => {
+    expect(evaluateCondition({ majorIn: ['cs'] }, makeState({}))).toBe(false);
+  });
+
   // —— 健康档位 ——
   it('healthIn: returns true when health is in list', () => {
     expect(evaluateCondition({ healthIn: ['healthy', 'subhealthy'] }, makeState({ health: 'healthy' }))).toBe(true);
@@ -116,12 +141,12 @@ describe('evaluateCondition', () => {
 
   // —— 结局积分 ——
   it('scoreGte: returns true when all listed tracks meet threshold', () => {
-    const s = makeState({ scores: { career: 80, family: 50, freedom: 0, fame: 0, spirit: 0 } });
+    const s = makeState({ scores: { career: 80, family: 50, freedom: 0, fame: 0, spirit: 0, study: 0 } });
     expect(evaluateCondition({ scoreGte: { career: 80 } }, s)).toBe(true);
   });
 
   it('scoreGte: returns false when any listed track below threshold', () => {
-    const s = makeState({ scores: { career: 30, family: 50, freedom: 0, fame: 0, spirit: 0 } });
+    const s = makeState({ scores: { career: 30, family: 50, freedom: 0, fame: 0, spirit: 0, study: 0 } });
     expect(evaluateCondition({ scoreGte: { career: 80 } }, s)).toBe(false);
   });
 

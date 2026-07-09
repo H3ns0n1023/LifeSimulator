@@ -1,7 +1,7 @@
 // src/engine/condition.ts
 // 条件 DSL 求值。替代旧的 attrGte/attrLt/skillGte/skillLt 体系。
 import type { Condition, GameState } from './types';
-import { HEALTH_RANK } from './constants';
+import { HEALTH_RANK, EDUCATION_RANK } from './constants';
 
 /**
  * 求值一个 Condition 节点。
@@ -51,6 +51,18 @@ export function evaluateCondition(condition: Condition, state: GameState): boole
   if ('scoreGte' in condition) {
     return (Object.entries(condition.scoreGte) as [keyof typeof state.scores, number][])
       .every(([k, v]) => state.scores[k] >= v);
+  }
+
+  // —— 学历层次 ≥ 某档（无 education 视为不满足）——
+  if ('educationGte' in condition) {
+    if (!state.education) return false;
+    return EDUCATION_RANK[state.education] >= EDUCATION_RANK[condition.educationGte];
+  }
+
+  // —— 专业属于某集合（无 major 视为不满足）——
+  if ('majorIn' in condition) {
+    if (!state.major) return false;
+    return condition.majorIn.includes(state.major);
   }
 
   // —— 组合 ——
