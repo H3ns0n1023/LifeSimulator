@@ -1,6 +1,6 @@
 // src/content/college/_index.ts
 import type { GameEvent, Major } from '../../engine/types';
-import { addScore, adjustSalary, adjustSavings, transitionEmployment, worsenHealth, setEducation } from '../../engine/status';
+import { addScore, adjustSalary, adjustSavings, transitionEmployment, worsenHealth, setEducation, addDisease } from '../../engine/status';
 import { JOB_DICTIONARY, EDUCATION_RANK, EDUCATION_LABEL } from '../../engine/constants';
 import type { JobEntry } from '../../engine/constants';
 
@@ -338,6 +338,58 @@ export const collegeEvents: GameEvent[] = [
           weight: 100, condition: { all: [] },
           apply: (s) => { addScore(s, 'career', 3); },
           result: '你看着舍友朋友圈的照片，说不清是羡慕还是庆幸。',
+        }],
+      },
+    ],
+  },
+
+  // 9. 辍学创业念头 — 20-22 岁（career/freedom 分流）
+  {
+    id: 'college_dropout_thought',
+    stage: 'college', ageRange: [20, 22], once: true,
+    trigger: { baseWeight: 4, requires: [{ flag: 'skill_coding' }] },
+    text: '你做了个 App，居然有了几万用户。投资人约你喝咖啡：「辍学来干吧，下一个独角兽。」',
+    choices: [
+      {
+        label: '比尔·盖茨也是辍学的！',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { transitionEmployment(s, 'selfEmployed'); adjustSavings(s, -5000); addScore(s, 'career', 8); addScore(s, 'freedom', 8); s.flags.add('choice_dropout'); s.flags.add('milestone_left_college'); worsenHealth(s); },
+          result: '你办了退学手续。头三个月工资发不出，你睡在工位的睡袋里。',
+        }],
+      },
+      {
+        label: '先把文凭拿到手再说',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'study', 5); addScore(s, 'career', 3); s.flags.add('choice_stay_in_school'); s.flags.add('foreshadow_indie_dev'); },
+          result: '你把 App 当副业，按时毕业。后来它成了你简历上最亮的一笔。',
+        }],
+      },
+    ],
+  },
+
+  // 10. 宿舍矛盾 — 19-21 岁（family/spirit）
+  {
+    id: 'college_roommate_conflict',
+    stage: 'college', ageRange: [19, 21], once: true,
+    trigger: { baseWeight: 5 },
+    text: '凌晨两点，舍友还在外放打游戏。你已经忍了一个月，黑眼圈快掉到下巴。',
+    choices: [
+      {
+        label: '当面摊牌，立规矩',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'family', 5); addScore(s, 'spirit', 4); s.flags.add('skill_debate'); s.flags.add('choice_roommate_speak'); },
+          result: '一番激烈讨论后，宿舍制定了熄灯公约。你们成了最好的兄弟。',
+        }],
+      },
+      {
+        label: '忍着，默默换宿舍',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'spirit', 2); addDisease(s, 'insomnia'); s.flags.add('choice_roommate_avoid'); },
+          result: '你搬到了另一个宿舍。失眠好转了，但也没交到铁哥们。',
         }],
       },
     ],

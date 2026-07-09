@@ -322,4 +322,56 @@ export const retirementEvents: GameEvent[] = [
       },
     ],
   },
+
+  // 10. 空巢老人 — 63-70 岁（呼应 milestone_family）
+  {
+    id: 'retirement_empty_nest',
+    stage: 'retirement', ageRange: [63, 70], once: true,
+    trigger: { baseWeight: 4, requires: [{ flag: 'milestone_family' }] },
+    text: '孩子去了大城市工作，一年回来一次。电话里总说「都挺好的，您别操心」。',
+    choices: [
+      {
+        label: '培养自己的爱好，把日子过充实',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'spirit', 10); addScore(s, 'freedom', 8); s.flags.add('milestone_empty_nest'); s.flags.add('choice_rich_elderly'); },
+          result: '你报了老年大学，学书法学摄影。朋友圈全是你的作品，孩子看了都点赞。',
+        }],
+      },
+      {
+        label: '整天守着电话等孩子',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addDisease(s, 'depression'); worsenHealth(s); addScore(s, 'family', -5); s.flags.add('milestone_empty_nest'); s.flags.add('choice_lonely_elderly'); },
+          result: '你把电视开一整天，只是想听点人声。孩子春节回家的那几天，是一年里最亮的日子。',
+        }],
+      },
+    ],
+  },
+
+  // 11. 老友重逢/离世 — 65-75 岁（spirit）
+  {
+    id: 'retirement_old_friend',
+    stage: 'retirement', ageRange: [65, 75], once: true,
+    trigger: { baseWeight: 5 },
+    text: '你在公园下棋，一个老头盯着你看了半天：「你是……当年二班的？」是你的小学同学，五十多年没见了。',
+    choices: [
+      {
+        label: '每周约着下棋喝茶，重温旧时光',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'spirit', 12); addScore(s, 'family', 5); improveHealth(s); s.flags.add('milestone_old_friend'); s.flags.add('choice_reconnect_friend'); },
+          result: '你们聊了一辈子的故事。三个月后他走了，但你庆幸最后陪了他一段。',
+        }],
+      },
+      {
+        label: '加了微信，但没再联系',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'spirit', 2); s.flags.add('milestone_old_friend'); },
+          result: '你们互相点了赞，然后躺在对方的通讯录里，再没说过话。',
+        }],
+      },
+    ],
+  },
 ];

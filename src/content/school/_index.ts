@@ -395,4 +395,115 @@ export const schoolEvents: GameEvent[] = [
       },
     ],
   },
+
+  // 11. 小学入学第一天 — 7 岁（填补 7-9 岁真空）
+  {
+    id: 'school_first_day',
+    stage: 'school', ageRange: [7, 7], once: true,
+    trigger: { baseWeight: 8 },
+    text: '你背着比你还大的书包走进小学。老师在讲台上点名，同学们都怯生生的。',
+    choices: [
+      {
+        label: '主动举手自我介绍',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'family', 4); addScore(s, 'study', 3); s.flags.add('milestone_first_day_school'); s.flags.add('skill_social_bud'); },
+          result: '你成了班里第一个认识所有人的人。老师记住了你的名字。',
+        }],
+      },
+      {
+        label: '躲在角落，默默观察',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'spirit', 3); addScore(s, 'study', 2); s.flags.add('choice_observer_kid'); },
+          result: '你花了一周摸清了谁爱告状、谁爱打架、谁是老师的宠儿。',
+        }],
+      },
+    ],
+  },
+
+  // 12. 近视配眼镜 — 8-12 岁（启用 constants 已定义的 myopia 病症）
+  {
+    id: 'school_myopia',
+    stage: 'school', ageRange: [8, 12], once: true,
+    trigger: { baseWeight: 5, requires: [{ notDisease: 'myopia' }] },
+    text: '你越来越看不清黑板上的字了。妈妈带你去配眼镜，验光师摇摇头：「近视 300 度。」',
+    choices: [
+      {
+        label: '乖乖戴眼镜，注意用眼',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addDisease(s, 'myopia'); addScore(s, 'study', 3); },
+          result: '戴上眼镜的那一刻，世界重新清晰了。你成了「四眼」一族。',
+        }],
+      },
+      {
+        label: '死活不肯戴，眯眼看黑板',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addDisease(s, 'myopia'); worsenHealth(s); s.flags.add('choice_vain_myopia'); },
+          result: '度数涨得更快了。高二那年你还是戴上了眼镜——500 度。',
+        }],
+      },
+    ],
+  },
+
+  // 13. 转学 — 8-14 岁（影响后续交友/霸凌）
+  {
+    id: 'school_transfer',
+    stage: 'school', ageRange: [8, 14], once: true,
+    trigger: { baseWeight: 3 },
+    text: '因为父母工作调动，你转到了一所新学校。第一天，没人跟你说话。',
+    choices: [
+      {
+        label: '主动融入，交新朋友',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'family', 6); addScore(s, 'study', 2); s.flags.add('milestone_transfer'); s.flags.add('skill_social_bud'); },
+          result: '两周后你有了自己的小圈子。转学反而让你学会了适应。',
+        }],
+      },
+      {
+        label: '独来独往，埋头学习',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'study', 8); addScore(s, 'family', -3); s.flags.add('milestone_transfer'); s.flags.add('choice_lonely_transfer'); },
+          result: '你成了班里的透明人。但成绩名列前茅——孤独是你最好的老师。',
+        }],
+      },
+    ],
+  },
+
+  // 14. 早恋被发现 — 12-16 岁（延伸 first_crush）
+  {
+    id: 'school_first_crush_caught',
+    stage: 'school', ageRange: [12, 16], once: true,
+    trigger: { baseWeight: 5, requires: [{ flag: 'milestone_first_crush' }] },
+    text: '班主任把你和 ta 叫到办公室。你们传的小纸条被截获了，老师说要请家长。',
+    choices: [
+      {
+        label: '据理力争，这是我的自由',
+        outcomes: [
+          {
+            weight: 60, condition: { flag: 'skill_debate' },
+            apply: (s) => { addScore(s, 'family', 5); addScore(s, 'freedom', 8); s.flags.add('choice_defend_love'); },
+            result: '你引经据典把老师说得哑口无言。这事最后不了了之。',
+          },
+          {
+            weight: 40, condition: { all: [] },
+            apply: (s) => { addScore(s, 'family', -5); addScore(s, 'study', -3); s.flags.add('choice_caught_love'); },
+            result: '你被请了家长，回家挨了一顿揍。ta 也转学了。',
+          },
+        ],
+      },
+      {
+        label: '低头认错，发誓不再联系',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'study', 5); addScore(s, 'family', -2); s.flags.add('choice_give_up_love'); },
+          result: '你把心思收回了课本。高考多考了十几分，但偶尔还会想起 ta。',
+        }],
+      },
+    ],
+  },
 ];

@@ -1049,4 +1049,61 @@ export const careerEvents: GameEvent[] = [
       },
     ],
   },
+
+  // 28. 副业失败负债 — 30-45 岁（延伸 side_hustle 的失败分支）
+  {
+    id: 'career_side_business_fail',
+    stage: 'career', ageRange: [30, 45], once: true,
+    trigger: { baseWeight: 4, requires: [{ flag: 'choice_side_hustle_burned' }] },
+    text: '上次副业被割的韭菜，你又想再赌一把。这次你借了网贷搞直播带货，结果血本无归。',
+    choices: [
+      {
+        label: '老实打工还债，三年不吃肉',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { adjustSavings(s, -15000); addDisease(s, 'insomnia'); worsenHealth(s); addScore(s, 'spirit', 8); s.flags.add('choice_pay_debt'); },
+          result: '三年你还清了债。学会了：天上不会掉馅饼，掉的通常是铁饼。',
+        }],
+      },
+      {
+        label: '瞒着家人，以贷养贷',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { adjustSavings(s, -30000); addDisease(s, 'depression'); worsenHealth(s); worsenHealth(s); addScore(s, 'family', -10); s.flags.add('choice_hide_debt'); },
+          result: '雪球越滚越大。妻子发现存折空了那天，提出了离婚。',
+        }],
+      },
+    ],
+  },
+
+  // 29. 中年出轨诱惑 — 38-48 岁（呼应 marriage_crisis）
+  {
+    id: 'career_midlife_affair',
+    stage: 'career', ageRange: [38, 48], once: true,
+    trigger: { baseWeight: 4, requires: [{ marriage: 'married' }, { notFlag: 'milestone_affair_fired' }] },
+    text: '公司新来的实习生总找你帮忙，眼神亮晶晶的。某天加班到深夜，ta 说「要不要一起吃个夜宵？」',
+    choices: [
+      {
+        label: '守住底线，回家',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => { addScore(s, 'family', 8); addScore(s, 'spirit', 5); s.flags.add('choice_stay_faithful'); },
+          result: '你找借口离开了。那晚回家，妻子已经热好了饭。你忽然觉得她很好。',
+        }],
+      },
+      {
+        label: '一时冲动……',
+        outcomes: [{
+          weight: 100, condition: { all: [] },
+          apply: (s) => {
+            transitionMarriage(s, 'divorced');
+            addScore(s, 'family', -20); addScore(s, 'freedom', 5);
+            adjustSavings(s, -10000);
+            s.flags.add('milestone_divorced'); s.flags.add('choice_affair'); s.flags.add('milestone_affair_fired');
+          },
+          result: '纸包不住火。妻子发现后坚决离婚，你净身出户。孩子跟了她。',
+        }],
+      },
+    ],
+  },
 ];
